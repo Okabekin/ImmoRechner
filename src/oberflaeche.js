@@ -88,7 +88,7 @@ function render(){
   if(fehlt.length){
     for(const k of EST_FELDER){ const el=document.getElementById(k); if(el&&P[k]===null&&document.activeElement!==el){ el.value=""; el.classList.remove("est"); } }
     const namen={kaufpreis:"Kaufpreis",flaeche:"Wohnfläche",baujahr:"Baujahr"};
-    $("#out").innerHTML=`<section class="step leer"><h2>Neues Objekt</h2><p class="lead">Trag links mindestens <b>${fehlt.map(k=>namen[k]).join(", ")}</b> ein. Alles andere kannst du leer lassen: Fehlt die Miete oder das Hausgeld, schätzt der Rechner sie aus dem Stadtteil und zeigt dir den Wert direkt im Feld.</p><p class="lead">Deine Einstellungen zu Finanzierung, Steuer und Prognose sind geblieben.</p></section>`;
+    LAST_SUMMARY="Noch kein Objekt eingegeben."; $("#out").innerHTML=`<section class="step leer"><h2>Neues Objekt</h2><p class="lead">Trag links mindestens <b>${fehlt.map(k=>namen[k]).join(", ")}</b> ein. Alles andere kannst du leer lassen: Fehlt die Miete oder das Hausgeld, schätzt der Rechner sie aus dem Stadtteil und zeigt dir den Wert direkt im Feld.</p><p class="lead">Deine Einstellungen zu Finanzierung, Steuer und Prognose sind geblieben.</p></section>`;
     return;
   }
   const {q:p,est}=schaetzen(P);
@@ -300,12 +300,28 @@ function render(){
   <div class="verdict">${en.breakEven?pill("good",`Kaufen liegt ab Jahr ${en.breakEven} vorn`):pill("bad",`Mieten bleibt über ${s.N} Jahre vorn`)}</div>
   <p class="note">Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und den Nebenkosten als verlorenem Geld. Bei Eigennutzung ist der Verkauf schon nach 3 Kalenderjahren Selbstnutzung steuerfrei, Zinsen sind aber nicht absetzbar.</p></section>`;
 
+  const g=k=>(P[k]===null?" (geschätzt)":"");
+  LAST_SUMMARY=[
+   "Immobilien-Rechner – Werte",
+   `Objekt: ${p.stadtteil}, ${num(p.flaeche,1)} m², Baujahr ${p.baujahr}, Kaufpreis ${eur(KP)}${p.marktwert>0?`, Marktwert ${eur(p.marktwert)}`:""}`,
+   `Kaltmiete ${eur(p.miete)}/Mon.${g("miete")}, Hausgeld ${eur(p.hausgeld)}${g("hausgeld")}, davon nicht umlegbar ${eur(p.nichtUml)}${g("nichtUml")}, eigene Rücklage ${num(p.ruecklageQm,2)} €/m², Mietausfall ${pct(p.ausfall,1)}, Inventar ${eur(p.inventar||0)}, Sonderumlage ${eur(p.sonderumlage||0)}`,
+   `Nebenkosten: GrESt ${pct(p.grest,1)}, Notar ${pct(p.notar,1)}, Makler ${pct(p.makler,2)} = ${eur(s.nk)}`,
+   `Finanzierung: Eigenkapital ${eur(s.ek)}, Darlehen ${eur(s.darlehen)}, Zins ${pct(p.zins,2)}, Tilgung ${pct(p.tilg,1)}, Bindung ${p.bindung} J., Anschlusszins ${pct(p.anschlussZins,1)}`,
+   `Steuer: Grenzsteuersatz ${pct(p.steuer,0)}, Gebäudeanteil ${pct(p.gebAnteil,0)}, AfA ${p.rnd?`Gutachten ${p.rndJahre} J. (${pct(s.afaSatz,1)})`:pct(s.afaSatz,1)}`,
+   `Prognose: ${s.N} J. halten, Wertzuwachs ${pct(p.wz,1)}, Mietsteigerung ${pct(p.mietSteig,1)}, Kosten ${pct(p.kostSteig,1)}, ETF ${pct(p.etf,1)}, Ziel-IRR ${pct(p.zielIrr,1)}`,
+   "",
+   `Ergebnis: Faktor ${num(faktor,1)}, brutto ${pct(brutto,2)}, netto ${pct(netto,2)}`,
+   `Cashflow Jahr 1: vor Steuern ${eur(y1.cfVor/12)}/Mon., nach Steuern ${eur(y1.cfNach/12)}/Mon. (mit Gutachten-AfA: ${eur(sRnd.years[0].cfNach/12)})`,
+   `IRR ${s.N} J.: ${pct(irrMain,1)} (normale AfA ${pct(sStd.irr*100,1)}, mit Gutachten ${pct(sRnd.irr*100,1)})`,
+   `Maximalpreis für ${pct(p.zielIrr,1)} IRR: ${mp===Infinity?"> "+eur(KP*2.5):eur(mp)}`
+  ].join("\n");
   $("#out").innerHTML=h;
   drawChart(s);
 }
 
 /* ===== Aufpoppende Erklärungen ===== */
 const POPS={};
+let LAST_SUMMARY="";
 const pop=document.createElement("div"); pop.className="pop"; pop.hidden=true; pop.setAttribute("role","tooltip"); document.body.appendChild(pop);
 let popPinned=null, popFor=null;
 function popHtml(key){ return key.startsWith("info:")?INFO[key.slice(5)]:POPS[key]; }
@@ -353,6 +369,13 @@ function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(Math.max(x,1))));
 buildInputs(); fillInputs(); render();
 document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{P=Object.assign({},PRESETS[b.dataset.preset]); fillInputs(); save(); render();}));
 /* Neues Objekt: Objektdaten leeren, eigene Einstellungen behalten. Zweiter Klick bestätigt. */
+/* Werte kopieren, um sie Claude im Chat zu schicken */
+const copyBtn=$("#p-copy");
+copyBtn.addEventListener("click",()=>{
+  const fertig=t=>{copyBtn.textContent=t; setTimeout(()=>copyBtn.textContent="Werte kopieren",2500);};
+  const fallback=()=>{ let ta=$("#copy-fallback"); if(!ta){ ta=document.createElement("textarea"); ta.id="copy-fallback"; ta.readOnly=true; ta.rows=12; copyBtn.closest("header").appendChild(ta);} ta.hidden=false; ta.value=LAST_SUMMARY; ta.focus(); ta.select(); fertig("Text markiert, Strg+C drücken"); };
+  try{ navigator.clipboard.writeText(LAST_SUMMARY).then(()=>fertig("Kopiert ✓"),fallback); }catch(e){ fallback(); }
+});
 const neuBtn=$("#p-neu"); let neuTimer=null;
 neuBtn.addEventListener("click",()=>{
   if(!neuBtn.classList.contains("confirm")){ neuBtn.classList.add("confirm"); neuBtn.textContent="Wirklich leeren? Nochmal klicken"; clearTimeout(neuTimer);
