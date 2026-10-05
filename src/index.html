@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immobilien-Rechner Hamburg</title>
+<meta name="description" content="Kapitalanlage und Eigennutzung durchrechnen: Kennzahlen, Cashflow, Steuer, AfA-Gutachten, IRR, Stresstest, Maximalpreis.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Eingabe-Leiste links (wie ein Exposé-Datenblatt), Ergebnisse rechts als nummerierte Prüfschritte des Profi-Schemas */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15212b; --ink2:#4a5866; --muted:#7a8794; --line:#dbe1e6; --soft:#e9eef2;
+  --accent:#1668a8; --accent-ink:#ffffff; --accent-soft:#e3eef7;
+  --s1:#1668a8; --s2:#c27c0e; --s3:#7a8794;
+  --good:#1d7a46; --good-bg:#e2f3e8; --warn:#9a6200; --warn-bg:#fbf0d9; --bad:#b3261e; --bad-bg:#fbe5e3;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161c; --panel:#18212a; --ink:#e6edf2; --ink2:#a9b6c2; --muted:#7f8d99; --line:#2a3642; --soft:#1f2a34;
+  --accent:#4d9be0; --accent-ink:#0b1219; --accent-soft:#1b2d3d;
+  --s1:#3d8fd6; --s2:#c27c0e; --s3:#7f8d99;
+  --good:#5cc68a; --good-bg:#16301f; --warn:#e2ad4f; --warn-bg:#33270f; --bad:#f08077; --bad-bg:#3a1a18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161c; --panel:#18212a; --ink:#e6edf2; --ink2:#a9b6c2; --muted:#7f8d99; --line:#2a3642; --soft:#1f2a34;
+  --accent:#4d9be0; --accent-ink:#0b1219; --accent-soft:#1b2d3d;
+  --s1:#3d8fd6; --s2:#c27c0e; --s3:#7f8d99;
+  --good:#5cc68a; --good-bg:#16301f; --warn:#e2ad4f; --warn-bg:#33270f; --bad:#f08077; --bad-bg:#3a1a18; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+header.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px;padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:20px}
+h1{font-family:var(--f-display);font-stretch:80%;font-weight:800;font-size:clamp(28px,4vw,40px);line-height:1;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--ink2);margin:6px 0 0;max-width:60ch}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.presets span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px}
+button:hover{border-color:var(--accent)}
+button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+aside.inputs{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 16px 16px}
+@media (max-width:900px){aside.inputs{position:static;max-height:none}}
+details.grp{border-bottom:1px solid var(--line);padding-block:10px}
+details.grp:last-of-type{border-bottom:0}
+details.grp summary{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:15px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.grp summary::after{content:"+";color:var(--muted);font-weight:500}
+details.grp[open] summary::after{content:"–"}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:10px}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f.wide{grid-column:1/-1}
+.f label{font-size:12px;color:var(--ink2);line-height:1.3}
+.f .in{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);overflow:hidden}
+.f .in:focus-within{border-color:var(--accent)}
+.f input,.f select{width:100%;min-width:0;border:0;background:transparent;color:var(--ink);font:500 14px var(--f-mono);padding:6px 8px;font-variant-numeric:tabular-nums}
+.f select{font-family:var(--f-body)}
+.f .u{font-size:12px;color:var(--muted);padding-right:8px;white-space:nowrap}
+.f .hint{font-size:11.5px;color:var(--muted);line-height:1.35}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;grid-column:1/-1}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+main{display:flex;flex-direction:column;gap:20px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.kpi .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kpi .v{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;width:fit-content}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.good{color:var(--good);background:var(--good-bg)} .pill.warn{color:var(--warn);background:var(--warn-bg)} .pill.bad{color:var(--bad);background:var(--bad-bg)}
+section.step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+section.step h2{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:20px;margin:0 0 4px;display:flex;gap:10px;align-items:baseline;text-wrap:balance}
+section.step h2 .n{font-family:var(--f-mono);font-size:13px;color:var(--accent);font-weight:500}
+.lead{color:var(--ink2);margin:0 0 12px;max-width:75ch}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--soft);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:14ch}
+thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
+td.num,th.num{font-family:var(--f-mono);font-size:13px}
+tr.sum td{font-weight:600;border-top:1px solid var(--ink2);border-bottom:0}
+tr.sub td{color:var(--ink2)}
+.neg{color:var(--bad)} .pos{color:var(--good)}
+td.hl{background:var(--accent-soft);font-weight:600}
+.note{font-size:12.5px;color:var(--ink2);background:var(--soft);border-radius:8px;padding:10px 12px;margin-top:12px;max-width:none}
+.note b{color:var(--ink)}
+.verdict{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+.chart{position:relative;margin-top:8px}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink2);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:180px}
+.tip div{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.foot{color:var(--muted);font-size:12px;margin-top:8px;max-width:90ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>Immobilien-Rechner Hamburg</h1>
+    <p class="sub">Exposé-Daten links eintragen, rechts stehen alle Rechnungen aus dem Lernpfad: vom Kaufpreisfaktor bis zum IRR über die Haltedauer. Jede Änderung rechnet sofort neu.</p>
+  </div>
+  <div class="presets"><span>Beispiel laden</span>
+    <button type="button" id="p-eid" data-preset="eid">Übung 5 Eidelstedt</button>
+    <button type="button" id="p-l6" data-preset="l6">Lektion 6 Beispiel</button>
+    <button type="button" id="p-l3" data-preset="l3">Lektion 3 Beispiel</button>
+  </div>
+</header>
+<div class="grid">
+  <aside class="inputs" id="inputs" aria-label="Eingaben"></aside>
+  <main id="out"></main>
+</div>
+<p class="foot">Lernwerkzeug, keine Steuer- oder Anlageberatung. Vereinfachungen: Steuereffekt wird im selben Jahr angerechnet (wie mit Lohnsteuerermäßigung), Verluste und Gewinne mit demselben Grenzsteuersatz, Kaufnebenkosten werden anteilig auf Gebäude und Inventar verteilt, eigene Rücklage zählt als Werbungskosten, Kreditrate monatlich, Wert nach Wertzuwachs auf Basis des Marktwerts. Verkauf nach mindestens 10 Jahren steuerfrei, davor Spekulationssteuer auf (Erlös − Anschaffungskosten + AfA).</p>
+</div>
+<script src="rechenkern.js"></script>
+<script src="oberflaeche.js"></script>
+</body>
+</html>

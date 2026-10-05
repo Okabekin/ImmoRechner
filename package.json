@@ -1,0 +1,29 @@
+{
+  "name": "immorechner",
+  "productName": "Immobilien-Rechner",
+  "version": "1.0.0",
+  "description": "Immobilien-Rechner Hamburg: Kennzahlen, Cashflow, Steuer, AfA, IRR, Stresstest, Maximalpreis",
+  "main": "main.js",
+  "author": "Ekin",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "de.ekin.immorechner",
+    "productName": "Immobilien-Rechner",
+    "files": ["main.js", "src/**/*"],
+    "directories": { "output": "dist" },
+    "win": { "target": ["nsis", "portable"] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true },
+    "mac": { "target": [{ "target": "dmg", "arch": ["universal"] }], "category": "public.app-category.finance", "identity": null },
+    "linux": { "target": ["AppImage"] }
+  }
+}
