@@ -54,6 +54,10 @@ details.grp[open] summary::after{content:"–"}
 .f label{font-size:12px;color:var(--ink2);line-height:1.3}
 .lab{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:20px}
 .ib{flex:none;width:18px;height:18px;padding:0;border-radius:50%;font:600 11px/16px var(--f-mono);color:var(--accent);background:var(--accent-soft);border:1px solid transparent;text-align:center}
+.f input.est{color:var(--warn);font-style:italic}
+.f .hint.warn{color:var(--warn)}
+button.neu{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600;margin-right:8px}
+button.neu.confirm{background:var(--bad);border-color:var(--bad);color:#fff}
 .ib:hover,.ib:focus-visible{background:var(--accent);color:var(--accent-ink)}
 .pop{position:fixed;z-index:50;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(10,20,30,.18);padding:12px 14px;font-size:12.5px;line-height:1.5;max-height:70vh;overflow:auto}
 .pop b{display:block;font-family:var(--f-display);font-stretch:85%;font-size:14px;margin-bottom:6px}
@@ -121,7 +125,7 @@ td.hl{background:var(--accent-soft);font-weight:600}
     <h1>Immobilien-Rechner Hamburg</h1>
     <p class="sub">Exposé-Daten links eintragen, rechts stehen alle Rechnungen aus dem Lernpfad: vom Kaufpreisfaktor bis zum IRR über die Haltedauer. Jede Änderung rechnet sofort neu.</p>
   </div>
-  <div class="presets"><span>Beispiel laden</span>
+  <div class="presets"><button type="button" id="p-neu" class="neu">Neues Objekt</button><span>Beispiel laden</span>
     <button type="button" id="p-eid" data-preset="eid">Übung 5 Eidelstedt</button>
     <button type="button" id="p-l6" data-preset="l6">Lektion 6 Beispiel</button>
     <button type="button" id="p-l3" data-preset="l3">Lektion 3 Beispiel</button>

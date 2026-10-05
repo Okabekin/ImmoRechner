@@ -53,7 +53,8 @@ const pill=(kind,txt)=>`<span class="pill ${kind}">${txt}</span>`;
 
 const ib=id=>INFO[id]?`<button type="button" class="ib" data-pop="info:${id}" aria-label="Erklärung">i</button>`:"";
 const ip=()=>"";
-const OPT_LEER=new Set(["miete","hausgeld","nichtUml","vergleichsmiete","marktwert"]);
+const OPT_LEER=new Set(["miete","hausgeld","nichtUml","vergleichsmiete","marktwert","kaufpreis","flaeche","baujahr"]);
+const EST_FELDER=["miete","hausgeld","nichtUml","vergleichsmiete"];
 function buildInputs(){
   const box=$("#inputs"); let h="";
   for(const g of GROUPS){
@@ -63,14 +64,16 @@ function buildInputs(){
       if(opts){const o=opts==="STADTTEILE"?Object.keys(MIETEN).map(k=>[k,k]):opts;
         h+=`<div class="f wide"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><select id="${id}">${o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>${ip(id)}</div>`;continue;}
       const wide=hint&&hint.length>34?" wide":"";
-      h+=`<div class="f${wide}"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><input id="${id}" type="number" inputmode="decimal" step="${step}"><span class="u">${u}</span></div>${hint?`<span class="hint">${hint}</span>`:""}${ip(id)}</div>`;
+      h+=`<div class="f${wide}"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><input id="${id}" type="number" inputmode="decimal" step="${step}"><span class="u">${u}</span></div>${hint?`<span class="hint" id="hint-${id}" data-base="${hint}">${hint}</span>`:""}${ip(id)}</div>`;
     }
     h+=`</div></details>`;
   }
   box.innerHTML=h;
+  box.addEventListener("focusin",e=>{ if(e.target.classList&&e.target.classList.contains("est")) e.target.select(); });
+  box.addEventListener("focusout",e=>{ if(EST_FELDER.includes(e.target.id)) render(); });
   box.addEventListener("input",e=>{const el=e.target; if(!el.id) return;
     if(el.type==="checkbox") P[el.id]=el.checked; else if(el.tagName==="SELECT") P[el.id]=el.value;
-    else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:(OPT_LEER.has(el.id)?null:0); }
+    else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:(OPT_LEER.has(el.id)?null:0); el.classList.remove("est"); }
     save(); render();});
 }
 function fillInputs(){ for(const k in P){ const el=document.getElementById(k); if(!el) continue;
@@ -81,8 +84,19 @@ function save(){ try{localStorage.setItem("immo-rechner-v1",JSON.stringify(P));}
 /* ===== Ausgabe ===== */
 function row(label,v,c,extra){return `<tr${extra?` class="${extra}"`:""}><td>${label}</td><td class="num ${c||""}">${v}</td></tr>`;}
 function render(){
+  const fehlt=["kaufpreis","flaeche","baujahr"].filter(k=>!(P[k]>0));
+  if(fehlt.length){
+    for(const k of EST_FELDER){ const el=document.getElementById(k); if(el&&P[k]===null&&document.activeElement!==el){ el.value=""; el.classList.remove("est"); } }
+    const namen={kaufpreis:"Kaufpreis",flaeche:"Wohnfläche",baujahr:"Baujahr"};
+    $("#out").innerHTML=`<section class="step leer"><h2>Neues Objekt</h2><p class="lead">Trag links mindestens <b>${fehlt.map(k=>namen[k]).join(", ")}</b> ein. Alles andere kannst du leer lassen: Fehlt die Miete oder das Hausgeld, schätzt der Rechner sie aus dem Stadtteil und zeigt dir den Wert direkt im Feld.</p><p class="lead">Deine Einstellungen zu Finanzierung, Steuer und Prognose sind geblieben.</p></section>`;
+    return;
+  }
   const {q:p,est}=schaetzen(P);
-  for(const k of ["miete","hausgeld","nichtUml","vergleichsmiete"]){ const el=document.getElementById(k); if(el) el.placeholder=P[k]===null?"Schätzung: "+Math.round(p[k]):""; }
+  for(const k of EST_FELDER){ const el=document.getElementById(k), hint=document.getElementById("hint-"+k); if(!el) continue;
+    const geschaetzt=P[k]===null;
+    if(geschaetzt&&document.activeElement!==el){ el.value=Math.round(p[k]); el.classList.add("est"); }
+    if(!geschaetzt) el.classList.remove("est");
+    if(hint){ hint.textContent=geschaetzt?(est[k]?"Geschätzt: "+est[k].replace(/^[^0-9]*/,"")+". Eigenen Wert eintragen, wenn bekannt.":"Geschätzt: wie Kaltmiete oben."):hint.dataset.base; hint.classList.toggle("warn",geschaetzt); } }
   const s=simulate(p), sStd=simulate(p,{rnd:false}), sRnd=simulate(p,{rnd:true});
   const y1=s.years[0], KP=p.kaufpreis, jm=p.miete*12;
   const faktor=KP/jm, brutto=jm/KP*100;
@@ -338,3 +352,13 @@ function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(Math.max(x,1))));
 
 buildInputs(); fillInputs(); render();
 document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{P=Object.assign({},PRESETS[b.dataset.preset]); fillInputs(); save(); render();}));
+/* Neues Objekt: Objektdaten leeren, eigene Einstellungen behalten. Zweiter Klick bestätigt. */
+const neuBtn=$("#p-neu"); let neuTimer=null;
+neuBtn.addEventListener("click",()=>{
+  if(!neuBtn.classList.contains("confirm")){ neuBtn.classList.add("confirm"); neuBtn.textContent="Wirklich leeren? Nochmal klicken"; clearTimeout(neuTimer);
+    neuTimer=setTimeout(()=>{neuBtn.classList.remove("confirm"); neuBtn.textContent="Neues Objekt";},4000); return; }
+  clearTimeout(neuTimer); neuBtn.classList.remove("confirm"); neuBtn.textContent="Neues Objekt";
+  P=Object.assign({},P,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:null,marktwert:0,flaeche:null,baujahr:null,miete:null,hausgeld:null,nichtUml:null,
+    ruecklageQm:BASE.ruecklageQm,ausfall:BASE.ausfall,inventar:0,sonderumlage:0,makler:3.57,brw:0,grundstueck:0,mea:0,vergleichsmiete:null,rnd:false});
+  fillInputs(); save(); render(); document.getElementById("kaufpreis").focus();
+});
