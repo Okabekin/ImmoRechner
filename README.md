@@ -8,9 +8,7 @@ Lernwerkzeug, keine Steuer- oder Anlageberatung.
 
 ## Programm herunterladen
 
-Bei jeder Änderung auf `main` baut GitHub das Programm automatisch neu: unter **Actions → Programm bauen → letzter Lauf → Artifacts**.
-
-Für eine feste Version einen Tag setzen (z. B. `v1.0.0`). Dann erscheint das Programm unter **Releases**:
+Bei jeder Änderung auf `main` baut GitHub das Programm automatisch neu und stellt es unter **Releases** (rechts auf der Repo-Seite) zum Herunterladen bereit:
 - **Windows:** `Immobilien-Rechner Setup x.y.z.exe` (Installer) oder `Immobilien-Rechner x.y.z.exe` (ohne Installation). Das Programm ist nicht signiert, Windows warnt beim ersten Start: "Weitere Informationen" → "Trotzdem ausführen".
 - **Mac:** `Immobilien-Rechner-x.y.z-universal.dmg`. Beim ersten Start per Rechtsklick → "Öffnen".
 
