@@ -1,10 +1,11 @@
 /* ===== Eingaben ===== */
 const GROUPS=[
  {t:"Objekt",open:true,f:[
-  ["kaufpreis","Kaufpreis","€",1000],["marktwert","Marktwert heute","€",1000,"leer = Kaufpreis. Höher, wenn du unter Wert kaufst"],
+  ["stadtteil","Stadtteil","",null,null,"STADTTEILE"],
+  ["kaufpreis","Kaufpreis","€",1000],["marktwert","Marktwert, falls höher (optional)","€",1000,"leer = Kaufpreis"],
   ["flaeche","Wohnfläche","m²",0.1],["baujahr","Baujahr","",1],
-  ["miete","Kaltmiete","€/Mon.",5,"Mit Mietenspiegel + 10 % gegenprüfen"],["hausgeld","Hausgeld gesamt","€/Mon.",1],
-  ["nichtUml","davon nicht umlegbar","€/Mon.",1,"Verwaltung + Erhaltungsrücklage, typisch 30–40 %"],["ruecklageQm","Eigene Rücklage","€/m²·Mon.",0.05,"Reparaturen in der Wohnung"],
+  ["miete","Kaltmiete","€/Mon.",5,"leer = Schätzung aus Stadtteil"],["hausgeld","Hausgeld gesamt","€/Mon.",1,"leer = Schätzung"],
+  ["nichtUml","davon nicht umlegbar","€/Mon.",1,"leer = 35 % vom Hausgeld"],["ruecklageQm","Eigene Rücklage","€/m²·Mon.",0.05,"Reparaturen in der Wohnung"],
   ["ausfall","Mietausfall","% Miete",0.5],["inventar","Inventar separat (EBK)","€",500,"ohne Grunderwerbsteuer, 10 J. AfA"],
   ["sonderumlage","Sonderumlage Jahr 1","€",500]]},
  {t:"Kaufnebenkosten",f:[
@@ -27,16 +28,16 @@ const GROUPS=[
   ["verkaufskosten","Verkaufskosten","% vom Wert",0.5],["etf","ETF-Rendite nach Steuern","%",0.1],
   ["zielIrr","Ziel-Rendite (IRR)","%",0.5,"für den Maximalpreis"],["liegenschaftszins","Liegenschaftszins","%",0.1,"Marktbericht Gutachterausschuss, ETW HH ca. 1,5–3 %"]]},
  {t:"Eigennutzung",f:[
-  ["vergleichsmiete","Kaltmiete vergleichbare Wohnung","€/Mon.",5],["tagesgeld","Zins für Erspartes","%",0.1,"Was dein Eigenkapital sonst bringen würde"]]}
+  ["vergleichsmiete","Kaltmiete vergleichbare Wohnung","€/Mon.",5,"leer = Kaltmiete oben"],["tagesgeld","Zins für Erspartes","%",0.1,"Was dein Eigenkapital sonst bringen würde"]]}
 ];
-const BASE={kaufpreis:155000,marktwert:0,flaeche:39.6,baujahr:1963,miete:515,hausgeld:219,nichtUml:66,ruecklageQm:0.6,ausfall:2,inventar:0,sonderumlage:0,
+const BASE={stadtteil:"Eidelstedt",kaufpreis:155000,marktwert:0,flaeche:39.6,baujahr:1963,miete:515,hausgeld:219,nichtUml:66,ruecklageQm:0.6,ausfall:2,inventar:0,sonderumlage:0,
  grest:5.5,notar:2,makler:0,ekModus:"nk",ekBetrag:30000,zins:4,tilg:2,bindung:10,anschlussZins:6,anschlussTilg:2,
  steuer:35,gebAnteil:70,rnd:false,rndJahre:25,gutachten:1000,brw:0,grundstueck:0,mea:0,
  halte:10,wz:1.5,mietSteig:2,kostSteig:2,verkaufskosten:0,etf:6,zielIrr:6,liegenschaftszins:2.5,vergleichsmiete:475,tagesgeld:3};
 const PRESETS={
  eid:Object.assign({},BASE),
- l6:Object.assign({},BASE,{kaufpreis:200000,marktwert:0,flaeche:50,baujahr:1965,miete:675,hausgeld:300,nichtUml:110,ruecklageQm:0.8,makler:3.57,zins:3.8,gebAnteil:50,vergleichsmiete:675}),
- l3:Object.assign({},BASE,{kaufpreis:300000,marktwert:0,flaeche:60,baujahr:1970,miete:840,hausgeld:300,nichtUml:120,ruecklageQm:50/60,makler:3.57,ekModus:"betrag",ekBetrag:60000,zins:3.8,gebAnteil:70,vergleichsmiete:840})
+ l6:Object.assign({},BASE,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:200000,marktwert:0,flaeche:50,baujahr:1965,miete:675,hausgeld:300,nichtUml:110,ruecklageQm:0.8,makler:3.57,zins:3.8,gebAnteil:50,vergleichsmiete:675}),
+ l3:Object.assign({},BASE,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:300000,marktwert:0,flaeche:60,baujahr:1970,miete:840,hausgeld:300,nichtUml:120,ruecklageQm:50/60,makler:3.57,ekModus:"betrag",ekBetrag:60000,zins:3.8,gebAnteil:70,vergleichsmiete:840})
 };
 let P=Object.assign({},BASE);
 try{const s=JSON.parse(localStorage.getItem("immo-rechner-v1")||"null"); if(s) P=Object.assign({},BASE,s);}catch(e){}
@@ -50,31 +51,40 @@ const num=(v,d=1)=>isFinite(v)?nf(d).format(v):"–";
 const cls=v=>v<-0.5?"neg":(v>0.5?"pos":"");
 const pill=(kind,txt)=>`<span class="pill ${kind}">${txt}</span>`;
 
+const ib=id=>INFO[id]?`<button type="button" class="ib" data-info="${id}" aria-label="Erklärung" aria-expanded="false" title="${INFO[id].replace(/"/g,"&quot;")}">i</button>`:"";
+const ip=id=>INFO[id]?`<div class="info" id="info-${id}" hidden>${INFO[id]}</div>`:"";
+const OPT_LEER=new Set(["miete","hausgeld","nichtUml","vergleichsmiete","marktwert"]);
 function buildInputs(){
   const box=$("#inputs"); let h="";
   for(const g of GROUPS){
     h+=`<details class="grp"${g.open?" open":""}><summary>${g.t}</summary><div class="fields">`;
     for(const [id,lab,u,step,hint,opts] of g.f){
-      if(u==="chk"){h+=`<label class="chk"><input type="checkbox" id="${id}"> ${lab}</label>`;continue;}
-      if(opts){h+=`<div class="f wide"><label for="${id}">${lab}</label><div class="in"><select id="${id}">${opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select></div></div>`;continue;}
+      if(u==="chk"){h+=`<div class="f wide"><div class="lab"><label class="chk"><input type="checkbox" id="${id}"> ${lab}</label>${ib(id)}</div>${ip(id)}</div>`;continue;}
+      if(opts){const o=opts==="STADTTEILE"?Object.keys(MIETEN).map(k=>[k,k]):opts;
+        h+=`<div class="f wide"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><select id="${id}">${o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>${ip(id)}</div>`;continue;}
       const wide=hint&&hint.length>34?" wide":"";
-      h+=`<div class="f${wide}"><label for="${id}">${lab}</label><div class="in"><input id="${id}" type="number" inputmode="decimal" step="${step}"><span class="u">${u}</span></div>${hint?`<span class="hint">${hint}</span>`:""}</div>`;
+      h+=`<div class="f${wide}"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><input id="${id}" type="number" inputmode="decimal" step="${step}"><span class="u">${u}</span></div>${hint?`<span class="hint">${hint}</span>`:""}${ip(id)}</div>`;
     }
     h+=`</div></details>`;
   }
   box.innerHTML=h;
+  box.addEventListener("click",e=>{const b=e.target.closest(".ib"); if(!b) return; e.preventDefault();
+    const el=document.getElementById("info-"+b.dataset.info); el.hidden=!el.hidden; b.closest(".f").classList.toggle("wide-info",!el.hidden); b.setAttribute("aria-expanded",String(!el.hidden)); b.classList.toggle("on",!el.hidden);});
   box.addEventListener("input",e=>{const el=e.target; if(!el.id) return;
-    if(el.type==="checkbox") P[el.id]=el.checked; else if(el.tagName==="SELECT") P[el.id]=el.value; else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:0; }
+    if(el.type==="checkbox") P[el.id]=el.checked; else if(el.tagName==="SELECT") P[el.id]=el.value;
+    else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:(OPT_LEER.has(el.id)?null:0); }
     save(); render();});
 }
 function fillInputs(){ for(const k in P){ const el=document.getElementById(k); if(!el) continue;
-  if(el.type==="checkbox") el.checked=!!P[k]; else if(el.tagName==="SELECT") el.value=P[k]; else el.value=(k==="marktwert"&&!P[k])?"":+(+P[k]).toFixed(4); } }
+  if(el.type==="checkbox") el.checked=!!P[k]; else if(el.tagName==="SELECT") el.value=P[k];
+  else el.value=(P[k]===null||(k==="marktwert"&&!P[k]))?"":+(+P[k]).toFixed(4); } }
 function save(){ try{localStorage.setItem("immo-rechner-v1",JSON.stringify(P));}catch(e){} }
 
 /* ===== Ausgabe ===== */
 function row(label,v,c,extra){return `<tr${extra?` class="${extra}"`:""}><td>${label}</td><td class="num ${c||""}">${v}</td></tr>`;}
 function render(){
-  const p=Object.assign({},P);
+  const {q:p,est}=schaetzen(P);
+  for(const k of ["miete","hausgeld","nichtUml","vergleichsmiete"]){ const el=document.getElementById(k); if(el) el.placeholder=P[k]===null?"Schätzung: "+Math.round(p[k]):""; }
   const s=simulate(p), sStd=simulate(p,{rnd:false}), sRnd=simulate(p,{rnd:true});
   const y1=s.years[0], KP=p.kaufpreis, jm=p.miete*12;
   const faktor=KP/jm, brutto=jm/KP*100;
@@ -95,6 +105,8 @@ function render(){
   const kI= !isFinite(irrMain)?["warn","–"]:irrMain>=p.etf+1?["good","schlägt ETF"]:irrMain>=p.etf-1?["warn","≈ ETF"]:["bad","unter ETF"];
   const kM= !isFinite(mp)?["bad","Ziel unerreichbar"]:mp===Infinity?["good","weit über Preis"]:mp>=KP?["good",`${pct((mp/KP-1)*100,0)} Luft`]:["bad",`${pct((mp/KP-1)*100,0)} nötig`];
   let h="";
+  const estL=Object.values(est);
+  if(estL.length) h+=`<div class="schaetz">${pill("warn","Geschätzt")}<span>Im Inserat fehlte etwas, deshalb rechnet der Rechner mit: ${estL.join(", ")}. Vor einem Kauf durch echte Zahlen ersetzen.</span></div>`;
   h+=`<div class="kpis">
    <div class="kpi"><span class="l">Kaufpreisfaktor</span><span class="v">${num(faktor,1)}</span>${pill(...kF)}</div>
    <div class="kpi"><span class="l">Nettomietrendite</span><span class="v">${pct(netto,2)}</span>${pill(...kN)}</div>

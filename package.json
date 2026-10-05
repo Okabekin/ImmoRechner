@@ -19,11 +19,55 @@
   "build": {
     "appId": "de.ekin.immorechner",
     "productName": "Immobilien-Rechner",
-    "files": ["main.js", "src/**/*"],
-    "directories": { "output": "dist" },
-    "win": { "target": ["nsis", "portable"] },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true },
-    "mac": { "target": [{ "target": "dmg", "arch": ["universal"] }], "category": "public.app-category.finance", "identity": null },
-    "linux": { "target": ["AppImage"] }
+    "files": [
+      "main.js",
+      "src/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "Immobilien-Rechner-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.finance",
+      "identity": null,
+      "artifactName": "Immobilien-Rechner-${version}-Mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Okabekin",
+        "repo": "ImmoRechner"
+      }
+    ],
+    "portable": {
+      "artifactName": "Immobilien-Rechner-ohne-Installation-${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   }
 }
