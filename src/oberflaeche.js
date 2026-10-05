@@ -92,6 +92,7 @@ function render(){
     return;
   }
   const {q:p,est}=schaetzen(P);
+  const rndOk=p.baujahr<1980, GL=rndOk?"Mit Gutachten":"Mit Gutachten (unrealistisch ab Bj. 1980)";
   for(const k of EST_FELDER){ const el=document.getElementById(k), hint=document.getElementById("hint-"+k); if(!el) continue;
     const geschaetzt=P[k]===null;
     if(geschaetzt&&document.activeElement!==el){ el.value=Math.round(p[k]); el.classList.add("est"); }
@@ -212,8 +213,8 @@ function render(){
    ${row("= Vermögensbilanz ohne Wertzuwachs",sgn((a.cfNach+a.tilg)/12),cls(a.cfNach+a.tilg),"sum")}
   </tbody></table></div>`;};
   h+=`<section class="step" id="cashflow"><h2><span class="n">04</span>Cashflow im ersten Jahr</h2><p class="lead">Links mit normaler AfA (${pct(sStd.afaSatz,1)} wegen Baujahr ${p.baujahr}), rechts mit Restnutzungsdauer-Gutachten (${pct(sRnd.afaSatz,1)}). Gutachterkosten im ersten Jahr inklusive.</p>
-  <div class="cols">${cfTab(sStd,"Normale AfA")}${cfTab(sRnd,"Mit Gutachten")}</div>
-  <p class="note">Das Gutachten bringt dir <b>${eur((sRnd.afaGeb-sStd.afaGeb)*p.steuer/100/12)} pro Monat</b> mehr Steuerersparnis (ab Jahr 2). ${p.baujahr>=1980?"Bei Baujahr ab ca. 1980 ist eine verkürzte Restnutzungsdauer aber schwer zu begründen.":"Bei Häusern vor ca. 1980 fast immer prüfen."}</p></section>`;
+  <div class="cols">${cfTab(sStd,"Normale AfA")}${cfTab(sRnd,GL)}</div>
+  <p class="note">Das Gutachten bringt dir <b>${eur((sRnd.afaGeb-sStd.afaGeb)*p.steuer/100/12)} pro Monat</b> mehr Steuerersparnis (ab Jahr 2). ${rndOk?"Bei Häusern vor ca. 1980 fast immer prüfen.":`<b>Achtung: Bei Baujahr ${p.baujahr} glaubt dir kaum ein Finanzamt eine Restnutzungsdauer von ${p.rndJahre} Jahren. Rechne mit der normalen AfA.</b>`}</p></section>`;
 
   // 5 Steuer
   const brwOk=p.brw>0&&p.grundstueck>0&&p.mea>0;
@@ -244,9 +245,9 @@ function render(){
   const last=s.years[s.N-1];
   h+=`<section class="step" id="rendite"><h2><span class="n">06</span>Eigenkapitalrendite und IRR</h2><p class="lead">Der IRR zählt jede Zuzahlung mit und ist mit einem ETF (${pct(p.etf,1)} nach Steuern) direkt vergleichbar. Die EK-Rendite Jahr 1 schönt, weil sie die späteren Zuzahlungen ignoriert.</p>
   <div class="tw"><table><thead><tr><th>IRR über ${s.N} Jahre</th>${wzs.map(w=>`<th class="num">${pct(w,1)} WZ</th>`).join("")}</tr></thead><tbody>
-   ${irrRow({rnd:false},`Normale AfA (${pct(sStd.afaSatz,1)})`)}${irrRow({rnd:true},`Mit Gutachten (${pct(sRnd.afaSatz,1)})`)}
+   ${irrRow({rnd:false},`Normale AfA (${pct(sStd.afaSatz,1)})`)}${irrRow({rnd:true},`${GL} (${pct(sRnd.afaSatz,1)})`)}
   </tbody><thead><tr><th>EK-Rendite Jahr 1 (statisch)</th>${wzs.map(w=>`<th class="num">${pct(w,1)} WZ</th>`).join("")}</tr></thead><tbody>
-   ${ekRow({rnd:false},"Normale AfA")}${ekRow({rnd:true},"Mit Gutachten")}
+   ${ekRow({rnd:false},"Normale AfA")}${ekRow({rnd:true},GL)}
   </tbody></table></div>
   <div class="cols" style="margin-top:14px"><div class="tw"><table><tbody>
    ${row("Eingesetztes Eigenkapital",eur(s.ek))}${row(`Zuzahlungen über ${s.N} Jahre`,eur(s.zuz))}
@@ -274,7 +275,7 @@ function render(){
   const mpRow=(ov,lab)=>`<tr><td>${lab}</td>${[0,1.5,2.5].map(w=>{const v=maxPreis(p,p.zielIrr/100,Object.assign({wz:w},ov)); return `<td class="num ${v>=KP?"pos":"neg"}">${!isFinite(v)?"nicht erreichbar":v===Infinity?"> "+eur(KP*2.5):eur(Math.floor(v/500)*500)}</td>`;}).join("")}</tr>`;
   h+=`<section class="step" id="maxpreis"><h2><span class="n">08</span>Maximalpreis für ${pct(p.zielIrr,1)} IRR</h2><p class="lead">Bis zu welchem Kaufpreis erreichst du deine Ziel-Rendite? Marktwert und Miete bleiben gleich, Nebenkosten und Darlehen passen sich an. Darüber wird nicht gekauft.</p>
   <div class="tw"><table><thead><tr><th>Kaufpreis höchstens</th><th class="num">0 % WZ</th><th class="num">1,5 % WZ</th><th class="num">2,5 % WZ</th></tr></thead><tbody>
-   ${mpRow({rnd:false},"Normale AfA")}${mpRow({rnd:true},"Mit Gutachten")}
+   ${mpRow({rnd:false},"Normale AfA")}${mpRow({rnd:true},GL)}
   </tbody></table></div><p class="note">Angebotspreis: <b>${eur(KP)}</b>. Grün = Ziel bei diesem Preis erreichbar. Jede 5 % Preisnachlass sind ${eur(KP*0.05)}.</p></section>`;
 
   // 9 Jahrestabelle
@@ -312,7 +313,7 @@ function render(){
    "",
    `Ergebnis: Faktor ${num(faktor,1)}, brutto ${pct(brutto,2)}, netto ${pct(netto,2)}`,
    `Cashflow Jahr 1: vor Steuern ${eur(y1.cfVor/12)}/Mon., nach Steuern ${eur(y1.cfNach/12)}/Mon. (mit Gutachten-AfA: ${eur(sRnd.years[0].cfNach/12)})`,
-   `IRR ${s.N} J.: ${pct(irrMain,1)} (normale AfA ${pct(sStd.irr*100,1)}, mit Gutachten ${pct(sRnd.irr*100,1)})`,
+   `IRR ${s.N} J.: ${pct(irrMain,1)} (normale AfA ${pct(sStd.irr*100,1)}, mit Gutachten ${pct(sRnd.irr*100,1)}${rndOk?"":" – bei diesem Baujahr unrealistisch"})`,
    `Maximalpreis für ${pct(p.zielIrr,1)} IRR: ${mp===Infinity?"> "+eur(KP*2.5):eur(mp)}`
   ].join("\n");
   $("#out").innerHTML=h;
