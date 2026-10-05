@@ -51,8 +51,8 @@ const num=(v,d=1)=>isFinite(v)?nf(d).format(v):"–";
 const cls=v=>v<-0.5?"neg":(v>0.5?"pos":"");
 const pill=(kind,txt)=>`<span class="pill ${kind}">${txt}</span>`;
 
-const ib=id=>INFO[id]?`<button type="button" class="ib" data-info="${id}" aria-label="Erklärung" aria-expanded="false" title="${INFO[id].replace(/"/g,"&quot;")}">i</button>`:"";
-const ip=id=>INFO[id]?`<div class="info" id="info-${id}" hidden>${INFO[id]}</div>`:"";
+const ib=id=>INFO[id]?`<button type="button" class="ib" data-pop="info:${id}" aria-label="Erklärung">i</button>`:"";
+const ip=()=>"";
 const OPT_LEER=new Set(["miete","hausgeld","nichtUml","vergleichsmiete","marktwert"]);
 function buildInputs(){
   const box=$("#inputs"); let h="";
@@ -68,8 +68,6 @@ function buildInputs(){
     h+=`</div></details>`;
   }
   box.innerHTML=h;
-  box.addEventListener("click",e=>{const b=e.target.closest(".ib"); if(!b) return; e.preventDefault();
-    const el=document.getElementById("info-"+b.dataset.info); el.hidden=!el.hidden; b.closest(".f").classList.toggle("wide-info",!el.hidden); b.setAttribute("aria-expanded",String(!el.hidden)); b.classList.toggle("on",!el.hidden);});
   box.addEventListener("input",e=>{const el=e.target; if(!el.id) return;
     if(el.type==="checkbox") P[el.id]=el.checked; else if(el.tagName==="SELECT") P[el.id]=el.value;
     else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:(OPT_LEER.has(el.id)?null:0); }
@@ -107,12 +105,44 @@ function render(){
   let h="";
   const estL=Object.values(est);
   if(estL.length) h+=`<div class="schaetz">${pill("warn","Geschätzt")}<span>Im Inserat fehlte etwas, deshalb rechnet der Rechner mit: ${estL.join(", ")}. Vor einem Kauf durch echte Zahlen ersetzen.</span></div>`;
+  const mon=y1.miete/12, f2=v=>eur(v,0);
+  const zuzNetto=-s.years.reduce((a,r)=>a+r.cfNach,0), lastY=s.years[s.N-1];
+  POPS.kpi1=`<b>Kaufpreisfaktor = Kaufpreis ÷ Jahreskaltmiete</b><table>
+    <tr><td>Kaufpreis</td><td>${f2(KP)}</td></tr><tr><td>Jahreskaltmiete (${f2(p.miete)} × 12)</td><td>${f2(jm)}</td></tr>
+    <tr class="sum"><td>Faktor</td><td>${num(faktor,1)}</td></tr></table>
+    <p>Du zahlst ${num(faktor,1)} Jahresmieten für die Wohnung. Hamburg: unter 22 gut, 25 bis 30 üblich, über 30 teuer.</p>`;
+  POPS.kpi2=`<b>Nettomietrendite = Reinertrag ÷ Gesamtkosten</b><table>
+    <tr><td>Jahreskaltmiete</td><td>${f2(jm)}</td></tr><tr><td>− Mietausfall ${pct(p.ausfall,1)}</td><td>${f2(-jm*p.ausfall/100)}</td></tr>
+    <tr><td>− nicht umlegbar (${f2(p.nichtUml)} × 12)</td><td>${f2(-p.nichtUml*12)}</td></tr><tr><td>− eigene Rücklage (${num(p.ruecklageQm,2)} € × ${num(p.flaeche,1)} m² × 12)</td><td>${f2(-p.ruecklageQm*p.flaeche*12)}</td></tr>
+    <tr class="sum"><td>= Reinertrag</td><td>${f2(rein)}</td></tr><tr><td>Gesamtkosten (Kaufpreis + ${f2(s.nk)} Nebenkosten)</td><td>${f2(s.gesamt)}</td></tr>
+    <tr class="sum"><td>Nettomietrendite</td><td>${pct(netto,2)}</td></tr></table>
+    <p>Was das Objekt ohne Kredit bringt. Liegt sie unter dem Kreditzins (${pct(p.zins,2)}), kostet jeder geliehene Euro mehr, als er an Miete bringt.</p>`;
+  POPS.kpi3=`<b>Cashflow im ersten Jahr, pro Monat</b><table>
+    <tr><td>Kaltmiete</td><td>${f2(mon)}</td></tr><tr><td>− Mietausfall</td><td>${f2(-y1.ausfall/12)}</td></tr>
+    <tr><td>− nicht umlegbares Hausgeld</td><td>${f2(-y1.nu/12)}</td></tr><tr><td>− eigene Rücklage</td><td>${f2(-y1.rue/12)}</td></tr>
+    ${(y1.gut+y1.su)?`<tr><td>− Gutachten/Sonderumlage ÷ 12</td><td>${f2(-(y1.gut+y1.su)/12)}</td></tr>`:""}
+    <tr><td>− Kreditrate (Zins ${f2(y1.zins/12)} + Tilgung ${f2(y1.tilg/12)})</td><td>${f2(-(y1.zins+y1.tilg)/12)}</td></tr>
+    <tr class="sum"><td>= vor Steuern</td><td>${f2(y1.cfVor/12)}</td></tr><tr><td>± Steuer (${pct(p.steuer,0)} auf ${f2(y1.ergebnis)} Ergebnis ÷ 12)</td><td>${sgn(y1.steuer/12)}</td></tr>
+    <tr class="sum"><td>= nach Steuern</td><td>${f2(y1.cfNach/12)}</td></tr></table>
+    <p>So viel geht monatlich auf deinem Konto ab oder kommt dazu. Die Tilgung von ${f2(y1.tilg/12)} ist darin als Ausgabe enthalten, landet aber als Vermögen bei dir.</p>`;
+  POPS.kpi4=`<b>IRR: Rendite pro Jahr auf alles, was du einzahlst</b><table>
+    <tr><td>Eigenkapital am Anfang</td><td>${f2(s.ek)}</td></tr><tr><td>Zuzahlungen über ${s.N} Jahre (nach Steuern)</td><td>${f2(Math.max(0,zuzNetto))}</td></tr>
+    <tr><td>Wert nach ${s.N} Jahren (+${pct(p.wz,1)} pro Jahr)</td><td>${f2(lastY.wert)}</td></tr><tr><td>− Restschuld</td><td>${f2(-lastY.restschuld)}</td></tr>
+    ${(s.vk+s.spekSteuer)?`<tr><td>− Verkaufskosten/Steuer</td><td>${f2(-(s.vk+s.spekSteuer))}</td></tr>`:""}
+    <tr class="sum"><td>= Erlös für dich</td><td>${f2(s.erloes)}</td></tr><tr class="sum"><td>IRR</td><td>${pct(irrMain,1)}</td></tr></table>
+    <p>Der Zinssatz, den ein Sparkonto bräuchte, um dir bei denselben Einzahlungen am Ende genauso viel zu bringen. Vergleich: ETF ca. ${pct(p.etf,1)} nach Steuern.</p>`;
+  POPS.kpi5=`<b>Maximalpreis: höchster Kaufpreis für ${pct(p.zielIrr,1)} IRR</b>
+    <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete, Marktwert und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
+    <table><tr><td>Angebotspreis</td><td>${f2(KP)}</td></tr><tr><td>Maximalpreis</td><td>${mp===Infinity?"> "+f2(KP*2.5):f2(mp)}</td></tr>
+    <tr class="sum"><td>Spielraum</td><td>${isFinite(mp)?sgn(mp-KP):"–"}</td></tr></table>
+    <p>Darüber nicht kaufen. Das ist dein Verhandlungsziel.</p>`;
+  const kpi=(k,l,v,pl)=>`<div class="kpi" data-pop="${k}" tabindex="0"><span class="l">${l}</span><span class="v">${v}</span>${pl}<span class="how">Wie berechnet?</span></div>`;
   h+=`<div class="kpis">
-   <div class="kpi"><span class="l">Kaufpreisfaktor</span><span class="v">${num(faktor,1)}</span>${pill(...kF)}</div>
-   <div class="kpi"><span class="l">Nettomietrendite</span><span class="v">${pct(netto,2)}</span>${pill(...kN)}</div>
-   <div class="kpi"><span class="l">Cashflow n. St. Jahr 1</span><span class="v">${eur(y1.cfNach/12)}</span>${pill(...kC)}</div>
-   <div class="kpi"><span class="l">IRR ${s.N} J. bei ${pct(p.wz,1)} WZ</span><span class="v">${pct(irrMain,1)}</span>${pill(...kI)}</div>
-   <div class="kpi"><span class="l">Maximalpreis für ${pct(p.zielIrr,1)}</span><span class="v">${mp===Infinity?"> "+eur(KP*2.5):eur(mp)}</span>${pill(...kM)}</div>
+   ${kpi("kpi1","Kaufpreisfaktor",num(faktor,1),pill(...kF))}
+   ${kpi("kpi2","Nettomietrendite",pct(netto,2),pill(...kN))}
+   ${kpi("kpi3","Cashflow n. St. Jahr 1",eur(y1.cfNach/12),pill(...kC))}
+   ${kpi("kpi4",`IRR ${s.N} J. bei ${pct(p.wz,1)} WZ`,pct(irrMain,1),pill(...kI))}
+   ${kpi("kpi5",`Maximalpreis für ${pct(p.zielIrr,1)}`,mp===Infinity?"> "+eur(KP*2.5):eur(mp),pill(...kM))}
   </div>`;
 
   // 1 Schnellcheck
@@ -259,6 +289,24 @@ function render(){
   $("#out").innerHTML=h;
   drawChart(s);
 }
+
+/* ===== Aufpoppende Erklärungen ===== */
+const POPS={};
+const pop=document.createElement("div"); pop.className="pop"; pop.hidden=true; pop.setAttribute("role","tooltip"); document.body.appendChild(pop);
+let popPinned=null, popFor=null;
+function popHtml(key){ return key.startsWith("info:")?INFO[key.slice(5)]:POPS[key]; }
+function showPop(t){ const html=popHtml(t.dataset.pop); if(!html) return; popFor=t; pop.innerHTML=html; pop.hidden=false;
+  const r=t.getBoundingClientRect(), w=Math.min(360,window.innerWidth-24); pop.style.width=w+"px";
+  let x=Math.min(Math.max(12,r.left+r.width/2-w/2),window.innerWidth-w-12); pop.style.left=x+"px";
+  const ph=pop.offsetHeight; let y=r.bottom+8; if(y+ph>window.innerHeight-8 && r.top-ph-8>8) y=r.top-ph-8; pop.style.top=Math.max(8,y)+"px"; }
+function hidePop(){ pop.hidden=true; popFor=null; popPinned=null; }
+document.addEventListener("mouseover",e=>{ if(popPinned) return; const t=e.target.closest("[data-pop]"); if(t&&t!==popFor) showPop(t); else if(!t&&popFor&&!e.target.closest(".pop")) hidePop(); });
+document.addEventListener("click",e=>{ const t=e.target.closest("[data-pop]");
+  if(t){ e.preventDefault(); if(popPinned===t){hidePop();return;} showPop(t); popPinned=t; return; }
+  if(!e.target.closest(".pop")) hidePop(); });
+document.addEventListener("focusin",e=>{ const t=e.target.closest("[data-pop]"); if(t) showPop(t); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") hidePop(); });
+window.addEventListener("scroll",()=>{ if(popFor) showPop(popFor); },true);
 
 /* ===== Diagramm ===== */
 function drawChart(s){
