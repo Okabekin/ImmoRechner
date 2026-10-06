@@ -18,6 +18,7 @@ const GROUPS=[
   ["anschlussTilg","Tilgung danach","%",0.1]]},
  {t:"Steuer & AfA",open:true,f:[
   ["steuer","Grenzsteuersatz","%",1,"inkl. Soli/KiSt, bei 50–70 T€ Brutto ca. 35–42 %"],["gebAnteil","Gebäudeanteil","%",1,"Finanzamt-Arbeitshilfe oft 40–60 %"],
+  ["degressiv","Degressive AfA 5 % (Neubau)","chk"],
   ["rnd","Restnutzungsdauer-Gutachten nutzen","chk"],
   ["rndJahre","Restnutzungsdauer laut Gutachten","Jahre",1,"25 J. = 4 % AfA, 20 J. = 5 %"],["gutachten","Gutachterkosten","€",100,"sofort absetzbar"],
   ["brw","Bodenrichtwert (BORIS)","€/m²",10,"optional, für Kaufpreisaufteilung"],["grundstueck","Grundstücksfläche","m²",1],
@@ -32,7 +33,7 @@ const GROUPS=[
 ];
 const BASE={stadtteil:"Eidelstedt",kaufpreis:155000,marktwert:0,flaeche:39.6,baujahr:1963,miete:515,hausgeld:219,nichtUml:66,ruecklageQm:0.6,ausfall:2,inventar:0,sonderumlage:0,
  grest:5.5,notar:2,makler:0,ekModus:"nk",ekBetrag:30000,zins:4,tilg:2,bindung:10,anschlussZins:6,anschlussTilg:2,
- steuer:35,gebAnteil:70,rnd:false,rndJahre:25,gutachten:1000,brw:0,grundstueck:0,mea:0,
+ steuer:35,gebAnteil:70,degressiv:false,rnd:false,rndJahre:25,gutachten:1000,brw:0,grundstueck:0,mea:0,
  halte:10,wz:1.5,mietSteig:2,kostSteig:2,verkaufskosten:0,etf:6,zielIrr:6,liegenschaftszins:2.5,vergleichsmiete:475,tagesgeld:3};
 const PRESETS={
  eid:Object.assign({},BASE),
@@ -93,12 +94,15 @@ function render(){
   }
   const {q:p,est}=schaetzen(P);
   const rndOk=p.baujahr<1980, GL=rndOk?"Mit Gutachten":"Mit Gutachten (unrealistisch ab Bj. 1980)";
+  // Zweite AfA-Variante: bei Neubau (ab Bj. 2023) degressiv 5 %, sonst Restnutzungsdauer-Gutachten
+  const neubau=p.baujahr>=2023, STD={rnd:false,degressiv:false}, ALT=neubau?{rnd:false,degressiv:true}:{rnd:true,degressiv:false};
+  const ALTL=neubau?"Degressiv 5 % (Neubau)":GL, altAktiv=neubau?!!p.degressiv:!!p.rnd;
   for(const k of EST_FELDER){ const el=document.getElementById(k), hint=document.getElementById("hint-"+k); if(!el) continue;
     const geschaetzt=P[k]===null;
     if(geschaetzt&&document.activeElement!==el){ el.value=Math.round(p[k]); el.classList.add("est"); }
     if(!geschaetzt) el.classList.remove("est");
     if(hint){ hint.textContent=geschaetzt?(est[k]?"Geschätzt: "+est[k].replace(/^[^0-9]*/,"")+". Eigenen Wert eintragen, wenn bekannt.":"Geschätzt: wie Kaltmiete oben."):hint.dataset.base; hint.classList.toggle("warn",geschaetzt); } }
-  const s=simulate(p), sStd=simulate(p,{rnd:false}), sRnd=simulate(p,{rnd:true});
+  const s=simulate(p), sStd=simulate(p,STD), sRnd=simulate(p,ALT);
   const y1=s.years[0], KP=p.kaufpreis, jm=p.miete*12;
   const faktor=KP/jm, brutto=jm/KP*100;
   const rein=jm*(1-p.ausfall/100)-p.nichtUml*12-p.ruecklageQm*p.flaeche*12;
@@ -147,7 +151,7 @@ function render(){
     <tr class="sum"><td>= Erlös für dich</td><td>${f2(s.erloes)}</td></tr><tr class="sum"><td>IRR</td><td>${pct(irrMain,1)}</td></tr></table>
     <p>Der Zinssatz, den ein Sparkonto bräuchte, um dir bei denselben Einzahlungen am Ende genauso viel zu bringen. Vergleich: ETF ca. ${pct(p.etf,1)} nach Steuern.</p>`;
   POPS.kpi5=`<b>Maximalpreis: höchster Kaufpreis für ${pct(p.zielIrr,1)} IRR</b>
-    <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. ${p.marktwert>0?"Der eingetragene Marktwert bleibt fest, ein niedrigerer Preis ist also Rabatt.":"Ohne Marktwert gilt: Die Wohnung ist so viel wert, wie du zahlst. Billiger kaufen senkt also auch den späteren Verkaufspreis."} Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
+    <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. ${p.marktwert>0?"Der eingetragene Marktwert bleibt fest, ein niedrigerer Preis ist also Rabatt.":"Ohne Marktwert gilt: Die Wohnung ist so viel wert, wie du zahlst. Billiger kaufen senkt also auch den späteren Verkaufspreis."} Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${(neubau&&p.degressiv)?"degressiver AfA":p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
     <table><tr><td>Angebotspreis</td><td>${f2(KP)}</td></tr><tr><td>Maximalpreis</td><td>${mp===Infinity?"> "+f2(KP*2.5):f2(mp)}</td></tr>
     <tr class="sum"><td>${mp>=KP?"Puffer bis zur Grenze":"Muss runter um"}</td><td>${isFinite(mp)?sgn(mp-KP):"–"}</td></tr></table>
     <p>${mp>=KP?"Der Angebotspreis liegt unter deiner Grenze, die Ziel-Rendite wird schon erreicht. Der Maximalpreis ist eine Obergrenze, kein Ziel: Trotzdem runterhandeln, jeder Euro weniger erhöht deine Rendite.":"Der Angebotspreis liegt über deiner Grenze. Darüber nicht kaufen: Erst ab diesem Preis erreichst du die Ziel-Rendite. Verhandle darunter."}</p>`;
@@ -212,9 +216,9 @@ function render(){
    ${row("+ Tilgung (gehört dir)",sgn(a.tilg/12),"pos")}
    ${row("= Vermögensbilanz ohne Wertzuwachs",sgn((a.cfNach+a.tilg)/12),cls(a.cfNach+a.tilg),"sum")}
   </tbody></table></div>`;};
-  h+=`<section class="step" id="cashflow"><h2><span class="n">04</span>Cashflow im ersten Jahr</h2><p class="lead">Links mit normaler AfA (${pct(sStd.afaSatz,1)} wegen Baujahr ${p.baujahr}), rechts mit Restnutzungsdauer-Gutachten (${pct(sRnd.afaSatz,1)}). Gutachterkosten im ersten Jahr inklusive.</p>
-  <div class="cols">${cfTab(sStd,"Normale AfA")}${cfTab(sRnd,GL)}</div>
-  <p class="note">Das Gutachten bringt dir <b>${eur((sRnd.afaGeb-sStd.afaGeb)*p.steuer/100/12)} pro Monat</b> mehr Steuerersparnis (ab Jahr 2). ${rndOk?"Bei Häusern vor ca. 1980 fast immer prüfen.":`<b>Achtung: Bei Baujahr ${p.baujahr} glaubt dir kaum ein Finanzamt eine Restnutzungsdauer von ${p.rndJahre} Jahren. Rechne mit der normalen AfA.</b>`}</p></section>`;
+  h+=`<section class="step" id="cashflow"><h2><span class="n">04</span>Cashflow im ersten Jahr</h2><p class="lead">Links mit normaler AfA (${pct(sStd.afaSatz,1)} wegen Baujahr ${p.baujahr}), ${neubau?`rechts mit degressiver AfA (5 % vom Restwert, nur bei Baubeginn 10/2023 bis 9/2029).`:`rechts mit Restnutzungsdauer-Gutachten (${pct(sRnd.afaSatz,1)}). Gutachterkosten im ersten Jahr inklusive.`}</p>
+  <div class="cols">${cfTab(sStd,"Normale AfA")}${cfTab(sRnd,ALTL)}</div>
+  <p class="note">${neubau?`Die degressive AfA bringt dir im ersten Jahr <b>${eur((sRnd.years[0].afa-sStd.years[0].afa)*p.steuer/100/12)} pro Monat</b> mehr Steuerersparnis. Der Vorteil schrumpft jedes Jahr, insgesamt schreibst du gleich viel ab, nur früher. Voraussetzung: Baubeginn (Bauantrag) zwischen 01.10.2023 und 30.09.2029 und Kauf spätestens im Jahr der Fertigstellung. Beim Bauträger nachfragen!</p></section>`:`Das Gutachten bringt dir <b>${eur((sRnd.afaGeb-sStd.afaGeb)*p.steuer/100/12)} pro Monat</b> mehr Steuerersparnis (ab Jahr 2). ${rndOk?"Bei Häusern vor ca. 1980 fast immer prüfen.":`<b>Achtung: Bei Baujahr ${p.baujahr} glaubt dir kaum ein Finanzamt eine Restnutzungsdauer von ${p.rndJahre} Jahren. Rechne mit der normalen AfA.</b>`}</p></section>`}`;
 
   // 5 Steuer
   const brwOk=p.brw>0&&p.grundstueck>0&&p.mea>0;
@@ -240,14 +244,14 @@ function render(){
 
   // 6 Rendite
   const wzs=[0,1.5,2.5]; if(!wzs.includes(p.wz)) wzs.push(p.wz);
-  const irrRow=(ov,lab)=>`<tr><td>${lab}</td>${wzs.map(w=>{const v=simulate(p,Object.assign({wz:w},ov)).irr*100; const hl=(w===p.wz&&ov.rnd===!!p.rnd)?" hl":""; return `<td class="num ${cls(v-p.etf)}${hl}">${pct(v,1)}</td>`;}).join("")}</tr>`;
+  const irrRow=(ov,lab)=>`<tr><td>${lab}</td>${wzs.map(w=>{const v=simulate(p,Object.assign({wz:w},ov)).irr*100; const hl=(w===p.wz&&(ov===ALT)===altAktiv)?" hl":""; return `<td class="num ${cls(v-p.etf)}${hl}">${pct(v,1)}</td>`;}).join("")}</tr>`;
   const ekRow=(ov,lab)=>`<tr><td>${lab}</td>${wzs.map(w=>{const x=simulate(p,Object.assign({wz:w},ov)); const a=x.years[0]; return `<td class="num">${pct((a.cfNach+a.tilg+x.wert0*w/100)/x.ek*100,0)}</td>`;}).join("")}</tr>`;
   const last=s.years[s.N-1];
   h+=`<section class="step" id="rendite"><h2><span class="n">06</span>Eigenkapitalrendite und IRR</h2><p class="lead">Der IRR zählt jede Zuzahlung mit und ist mit einem ETF (${pct(p.etf,1)} nach Steuern) direkt vergleichbar. Die EK-Rendite Jahr 1 schönt, weil sie die späteren Zuzahlungen ignoriert.</p>
   <div class="tw"><table><thead><tr><th>IRR über ${s.N} Jahre</th>${wzs.map(w=>`<th class="num">${pct(w,1)} WZ</th>`).join("")}</tr></thead><tbody>
-   ${irrRow({rnd:false},`Normale AfA (${pct(sStd.afaSatz,1)})`)}${irrRow({rnd:true},`${GL} (${pct(sRnd.afaSatz,1)})`)}
+   ${irrRow(STD,`Normale AfA (${pct(sStd.afaSatz,1)})`)}${irrRow(ALT,neubau?ALTL:`${GL} (${pct(sRnd.afaSatz,1)})`)}
   </tbody><thead><tr><th>EK-Rendite Jahr 1 (statisch)</th>${wzs.map(w=>`<th class="num">${pct(w,1)} WZ</th>`).join("")}</tr></thead><tbody>
-   ${ekRow({rnd:false},"Normale AfA")}${ekRow({rnd:true},GL)}
+   ${ekRow(STD,"Normale AfA")}${ekRow(ALT,ALTL)}
   </tbody></table></div>
   <div class="cols" style="margin-top:14px"><div class="tw"><table><tbody>
    ${row("Eingesetztes Eigenkapital",eur(s.ek))}${row(`Zuzahlungen über ${s.N} Jahre`,eur(s.zuz))}
@@ -275,7 +279,7 @@ function render(){
   const mpRow=(ov,lab)=>`<tr><td>${lab}</td>${[0,1.5,2.5].map(w=>{const v=maxPreis(p,p.zielIrr/100,Object.assign({wz:w},ov)); return `<td class="num ${v>=KP?"pos":"neg"}">${!isFinite(v)?"nicht erreichbar":v===Infinity?"> "+eur(KP*2.5):eur(Math.floor(v/500)*500)}</td>`;}).join("")}</tr>`;
   h+=`<section class="step" id="maxpreis"><h2><span class="n">08</span>Maximalpreis für ${pct(p.zielIrr,1)} IRR</h2><p class="lead">Bis zu welchem Kaufpreis erreichst du deine Ziel-Rendite? Die Miete bleibt gleich, Nebenkosten und Darlehen passen sich an. ${p.marktwert>0?"Der Marktwert bleibt fest (Rabatt-Rechnung).":"Wert = Kaufpreis: Der spätere Verkaufspreis sinkt mit."} Darüber wird nicht gekauft.</p>
   <div class="tw"><table><thead><tr><th>Kaufpreis höchstens</th><th class="num">0 % WZ</th><th class="num">1,5 % WZ</th><th class="num">2,5 % WZ</th></tr></thead><tbody>
-   ${mpRow({rnd:false},"Normale AfA")}${mpRow({rnd:true},GL)}
+   ${mpRow(STD,"Normale AfA")}${mpRow(ALT,ALTL)}
   </tbody></table></div><p class="note">Angebotspreis: <b>${eur(KP)}</b>. Grün = Ziel bei diesem Preis erreichbar. Jede 5 % Preisnachlass sind ${eur(KP*0.05)}.</p></section>`;
 
   // 9 Jahrestabelle
@@ -308,7 +312,7 @@ function render(){
    `Kaltmiete ${eur(p.miete)}/Mon.${g("miete")}, Hausgeld ${eur(p.hausgeld)}${g("hausgeld")}, davon nicht umlegbar ${eur(p.nichtUml)}${g("nichtUml")}, eigene Rücklage ${num(p.ruecklageQm,2)} €/m², Mietausfall ${pct(p.ausfall,1)}, Inventar ${eur(p.inventar||0)}, Sonderumlage ${eur(p.sonderumlage||0)}`,
    `Nebenkosten: GrESt ${pct(p.grest,1)}, Notar ${pct(p.notar,1)}, Makler ${pct(p.makler,2)} = ${eur(s.nk)}`,
    `Finanzierung: Eigenkapital ${eur(s.ek)}, Darlehen ${eur(s.darlehen)}, Zins ${pct(p.zins,2)}, Tilgung ${pct(p.tilg,1)}, Bindung ${p.bindung} J., Anschlusszins ${pct(p.anschlussZins,1)}`,
-   `Steuer: Grenzsteuersatz ${pct(p.steuer,0)}, Gebäudeanteil ${pct(p.gebAnteil,0)}, AfA ${p.rnd?`Gutachten ${p.rndJahre} J. (${pct(s.afaSatz,1)})`:pct(s.afaSatz,1)}`,
+   `Steuer: Grenzsteuersatz ${pct(p.steuer,0)}, Gebäudeanteil ${pct(p.gebAnteil,0)}, AfA ${(neubau&&p.degressiv)?"degressiv 5 %":p.rnd?`Gutachten ${p.rndJahre} J. (${pct(s.afaSatz,1)})`:pct(s.afaSatz,1)}`,
    `Prognose: ${s.N} J. halten, Wertzuwachs ${pct(p.wz,1)}, Mietsteigerung ${pct(p.mietSteig,1)}, Kosten ${pct(p.kostSteig,1)}, ETF ${pct(p.etf,1)}, Ziel-IRR ${pct(p.zielIrr,1)}`,
    "",
    `Ergebnis: Faktor ${num(faktor,1)}, brutto ${pct(brutto,2)}, netto ${pct(netto,2)}`,
@@ -383,6 +387,6 @@ neuBtn.addEventListener("click",()=>{
     neuTimer=setTimeout(()=>{neuBtn.classList.remove("confirm"); neuBtn.textContent="Neues Objekt";},4000); return; }
   clearTimeout(neuTimer); neuBtn.classList.remove("confirm"); neuBtn.textContent="Neues Objekt";
   P=Object.assign({},P,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:null,marktwert:0,flaeche:null,baujahr:null,miete:null,hausgeld:null,nichtUml:null,
-    ruecklageQm:BASE.ruecklageQm,ausfall:BASE.ausfall,inventar:0,sonderumlage:0,makler:3.57,brw:0,grundstueck:0,mea:0,vergleichsmiete:null,rnd:false});
+    ruecklageQm:BASE.ruecklageQm,ausfall:BASE.ausfall,inventar:0,sonderumlage:0,makler:3.57,brw:0,grundstueck:0,mea:0,vergleichsmiete:null,rnd:false,degressiv:false});
   fillInputs(); save(); render(); document.getElementById("kaufpreis").focus();
 });

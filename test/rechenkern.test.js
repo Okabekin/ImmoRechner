@@ -42,3 +42,12 @@ test('Maximalpreis: ohne Marktwert sinkt der Wert mit dem Preis', () => {
   // Mit festem Marktwert ist ein Rabatt Gewinn, der Maximalpreis also anders
   assert.notStrictEqual(Math.round(maxPreis({ ...basis, marktwert: 200000 }, 0.06)), Math.round(mp));
 });
+
+test('Degressive AfA: 5 % vom Restwert, nur ab Baujahr 2023', () => {
+  const neu = { ...basis, kaufpreis: 419000, makler: 0, baujahr: 2028, gebAnteil: 75, degressiv: true };
+  const s = simulate(neu);
+  assert.strictEqual(Math.round(s.years[0].afa), 16891);           // 5 % von 337.819 € (Übung 6)
+  assert.strictEqual(Math.round(s.years[1].afa), 16046);           // 5 % vom Restwert
+  assert.strictEqual(Math.round(simulate(neu, { degressiv: false }).years[0].afa), 10135); // linear 3 %
+  assert.strictEqual(simulate({ ...basis, degressiv: true }).years[0].afa, simulate(basis).years[0].afa); // Bj. 1965: keine Wirkung
+});

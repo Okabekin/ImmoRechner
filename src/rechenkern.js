@@ -15,7 +15,9 @@ function simulate(p, ov){
   const nkQuote=nk/KP;
   const gebBasis=(KP-inv)*(1+nkQuote)*p.gebAnteil/100;
   const invBasis=inv*(1+nkQuote);
-  const afaSatz=p.rnd ? 100/p.rndJahre : afaNormal(p.baujahr);
+  // Degressive AfA (§ 7 Abs. 5a EStG): 5 % vom Restwert, nur Neubau mit Baubeginn 10/2023–9/2029
+  const deg=!!p.degressiv && p.baujahr>=2023;
+  const afaSatz=deg ? 5 : (p.rnd ? 100/p.rndJahre : afaNormal(p.baujahr));
   const afaGeb=gebBasis*afaSatz/100;
   const N=Math.max(1,Math.round(p.halte));
   const wert0=p.marktwert>0?p.marktwert:KP;
@@ -33,7 +35,9 @@ function simulate(p, ov){
     const nu=p.nichtUml*12*gk, rue=p.ruecklageQm*p.flaeche*12*gk;
     const gut=(y===1&&p.rnd)?p.gutachten:0, su=(y===1)?(p.sonderumlage||0):0;
     const cfVor=miete-ausfall-nu-rue-gut-su-zY-tY;
-    const aG=Math.min(afaGeb, Math.max(0,gebBasis-afaGebCum)); afaGebCum+=aG;
+    const rest=Math.max(0,gebBasis-afaGebCum);
+    // degressiv: 5 % vom Restwert; Wechsel auf linear (Rest / Restnutzungsdauer 33 1/3 J.), sobald das mehr bringt
+    const aG=deg ? Math.max(rest*0.05, Math.min(rest, rest/Math.max(1,100/3-(y-1)))) : Math.min(afaGeb, rest); afaGebCum+=aG;
     const aI=Math.min(invBasis/10, Math.max(0,invBasis-afaInvCum)); afaInvCum+=aI;
     const ergebnis=miete-ausfall-nu-rue-gut-su-zY-aG-aI;
     const steuer=-ergebnis*p.steuer/100; // positiv = Erstattung

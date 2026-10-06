@@ -24,6 +24,7 @@ const INFO={
  anschlussTilg:"Tilgung nach Ende der Zinsbindung.",
  steuer:"Dein persönlicher Grenzsteuersatz: So viel Steuer zahlst du auf den letzten verdienten Euro. Bei 50.000 bis 70.000 € Brutto-Jahresgehalt ca. 35 bis 42 % inklusive Soli und Kirchensteuer. Je höher, desto mehr bringen Verluste aus Vermietung.",
  gebAnteil:"Nur das Gebäude wird abgeschrieben, nicht der Boden. Das Finanzamt schätzt den Gebäudeanteil in Hamburg oft nur auf 40 bis 60 %. Besser: Aufteilung im Notarvertrag festlegen, begründet über den Bodenrichtwert (Felder unten).",
+ degressiv:"Nur für Neubau: Statt 3 % linear darfst du jedes Jahr 5 % vom Restwert abschreiben (Jahr 1: 5 % vom Gebäudewert, danach etwas weniger). Bedingungen: Baubeginn (Bauantrag) zwischen 01.10.2023 und 30.09.2029, und du kaufst spätestens im Jahr der Fertigstellung. Gilt nur, wenn das Baujahr ab 2023 eingetragen ist. Insgesamt schreibst du gleich viel ab, aber früher, das hebt den IRR.",
  rnd:"Mit einem Gutachten zur Restnutzungsdauer darfst du schneller abschreiben, wenn das Haus nicht mehr 50 Jahre hält. Lohnt sich vor allem bei Häusern vor ca. 1980.",
  rndJahre:"Restnutzungsdauer laut Gutachten. AfA = 100 ÷ Jahre: 25 Jahre = 4 %, 20 Jahre = 5 %.",
  gutachten:"Kosten für das Restnutzungsdauer-Gutachten, ca. 800 bis 1.500 €, im ersten Jahr voll absetzbar.",
