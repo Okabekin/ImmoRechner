@@ -135,7 +135,11 @@ function render(){
     <tr><td>− nicht umlegbar (${f2(p.nichtUml)} × 12)</td><td>${f2(-p.nichtUml*12)}</td></tr><tr><td>− eigene Rücklage (${num(p.ruecklageQm,2)} € × ${num(p.flaeche,1)} m² × 12)</td><td>${f2(-p.ruecklageQm*p.flaeche*12)}</td></tr>
     <tr class="sum"><td>= Reinertrag</td><td>${f2(rein)}</td></tr><tr><td>Gesamtkosten (Kaufpreis + ${f2(s.nk)} Nebenkosten)</td><td>${f2(s.gesamt)}</td></tr>
     <tr class="sum"><td>Nettomietrendite</td><td>${pct(netto,2)}</td></tr></table>
-    <p>Was das Objekt ohne Kredit bringt. Liegt sie unter dem Kreditzins (${pct(p.zins,2)}), kostet jeder geliehene Euro mehr, als er an Miete bringt.</p>`;
+    <p>Die ehrlichere Rendite: was nach den Kosten, die du als Vermieter selbst trägst, übrig bleibt, gemessen an allem, was du inklusive Nebenkosten bezahlst. Sie zeigt, was das Objekt bringen würde, wenn du es komplett bar kaufst. Liegt sie unter dem Kreditzins (${pct(p.zins,2)}), kostet jeder geliehene Euro mehr, als er an Miete bringt.</p>`;
+  POPS.brutto=`<b>Bruttomietrendite = Jahreskaltmiete ÷ Kaufpreis</b><table>
+    <tr><td>Jahreskaltmiete (${f2(p.miete)} × 12)</td><td>${f2(jm)}</td></tr><tr><td>Kaufpreis</td><td>${f2(KP)}</td></tr>
+    <tr class="sum"><td>Bruttomietrendite</td><td>${pct(brutto,2)}</td></tr></table>
+    <p>Die einfachste Kennzahl, genau das Gegenstück zum Kaufpreisfaktor (100 ÷ ${num(faktor,1)}). „Brutto“ heißt: ohne Kosten, ohne Nebenkosten. Deshalb steht sie in Inseraten gern, sie sieht besser aus als die Wirklichkeit. Hamburg: unter 3,5 % teuer, 4–4,5 % normal, ab 5 % gut.</p>`;
   POPS.kpi3=`<b>Cashflow im ersten Jahr, pro Monat</b><table>
     <tr><td>Kaltmiete</td><td>${f2(mon)}</td></tr><tr><td>− Mietausfall</td><td>${f2(-y1.ausfall/12)}</td></tr>
     <tr><td>− nicht umlegbares Hausgeld</td><td>${f2(-y1.nu/12)}</td></tr><tr><td>− eigene Rücklage</td><td>${f2(-y1.rue/12)}</td></tr>
@@ -168,9 +172,9 @@ function render(){
   h+=`<section class="step" id="schnellcheck"><h2><span class="n">01</span>Schnellcheck</h2><p class="lead">Lohnt es sich weiterzulesen? Faktor unter 22 ist in Hamburg gut, 25–30 normal, über 30 trägt sich nur über Wertzuwachs.</p>
   <div class="cols"><div class="tw"><table><tbody>
    ${row("Preis pro m²",eur(KP/p.flaeche))}${row("Miete pro m²",eur(mieteQm,2))}
-   ${row("Jahreskaltmiete",eur(jm))}${row("Kaufpreisfaktor",num(faktor,1))}
-   ${row("Bruttomietrendite",pct(brutto,2))}${row("Reinertrag (Miete − Ausfall − nicht umlegbar − Rücklage)",eur(rein))}
-   ${row("Nettomietrendite (auf Gesamtkosten)",pct(netto,2),"","sum")}
+   ${row("Jahreskaltmiete",eur(jm))}${row(`<span class="hov" data-pop="kpi1" tabindex="0">Kaufpreisfaktor</span>`,num(faktor,1))}
+   ${row(`<span class="hov" data-pop="brutto" tabindex="0">Bruttomietrendite</span>`,pct(brutto,2))}${row("Reinertrag (Miete − Ausfall − nicht umlegbar − Rücklage)",eur(rein))}
+   ${row(`<span class="hov" data-pop="kpi2" tabindex="0">Nettomietrendite (auf Gesamtkosten)</span>`,pct(netto,2),"","sum")}
   </tbody></table></div><div class="tw"><table><tbody>
    ${row("Grunderwerbsteuer",eur(s.grest))}${row("Notar + Grundbuch",eur(s.notar))}${row("Makler",eur(s.makler))}
    ${row("Kaufnebenkosten",eur(s.nk)+` <small>(${pct(s.nk/KP*100,1)})</small>`,"","sub")}
