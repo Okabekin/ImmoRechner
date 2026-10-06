@@ -149,8 +149,8 @@ function render(){
   POPS.kpi5=`<b>Maximalpreis: höchster Kaufpreis für ${pct(p.zielIrr,1)} IRR</b>
     <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. ${p.marktwert>0?"Der eingetragene Marktwert bleibt fest, ein niedrigerer Preis ist also Rabatt.":"Ohne Marktwert gilt: Die Wohnung ist so viel wert, wie du zahlst. Billiger kaufen senkt also auch den späteren Verkaufspreis."} Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
     <table><tr><td>Angebotspreis</td><td>${f2(KP)}</td></tr><tr><td>Maximalpreis</td><td>${mp===Infinity?"> "+f2(KP*2.5):f2(mp)}</td></tr>
-    <tr class="sum"><td>Spielraum</td><td>${isFinite(mp)?sgn(mp-KP):"–"}</td></tr></table>
-    <p>Darüber nicht kaufen. Das ist dein Verhandlungsziel.</p>`;
+    <tr class="sum"><td>${mp>=KP?"Puffer bis zur Grenze":"Muss runter um"}</td><td>${isFinite(mp)?sgn(mp-KP):"–"}</td></tr></table>
+    <p>${mp>=KP?"Der Angebotspreis liegt unter deiner Grenze, die Ziel-Rendite wird schon erreicht. Der Maximalpreis ist eine Obergrenze, kein Ziel: Trotzdem runterhandeln, jeder Euro weniger erhöht deine Rendite.":"Der Angebotspreis liegt über deiner Grenze. Darüber nicht kaufen: Erst ab diesem Preis erreichst du die Ziel-Rendite. Verhandle darunter."}</p>`;
   const kpi=(k,l,v,pl)=>`<div class="kpi" data-pop="${k}" tabindex="0"><span class="l">${l}</span><span class="v">${v}</span>${pl}<span class="how">Wie berechnet?</span></div>`;
   h+=`<div class="kpis">
    ${kpi("kpi1","Kaufpreisfaktor",num(faktor,1),pill(...kF))}
