@@ -1,7 +1,7 @@
 // Prüft den Rechenkern gegen die Ergebnisse aus Lektion 6 und Übung 5
 const test = require('node:test');
 const assert = require('node:assert');
-const { simulate } = require('../src/rechenkern.js');
+const { simulate, maxPreis } = require('../src/rechenkern.js');
 
 const basis = {kaufpreis:200000,marktwert:0,flaeche:50,baujahr:1965,miete:675,hausgeld:300,nichtUml:110,ruecklageQm:0.8,ausfall:2,
   grest:5.5,notar:2,makler:3.57,inventar:0,sonderumlage:0,ekModus:'nk',ekBetrag:0,zins:3.8,tilg:2,bindung:10,anschlussZins:6,anschlussTilg:2,
@@ -32,4 +32,13 @@ test('Übung 5 Eidelstedt: Cashflow Jahr 1 bei 13 €/m²', () => {
     makler:0, zins:4, gebAnteil:70});
   assert.strictEqual(Math.round(r.years[0].cfVor / 12), -360);
   assert.strictEqual(Math.round(r.years[0].cfNach / 12), -258);
+});
+
+test('Maximalpreis: ohne Marktwert sinkt der Wert mit dem Preis', () => {
+  const mp = maxPreis(basis, 0.06);
+  assert.ok(isFinite(mp));
+  // Gegenprobe: zum Maximalpreis (Wert = Preis) ergibt sich genau 6 %
+  assert.ok(Math.abs(simulate(basis, { kaufpreis: mp }).irr - 0.06) < 1e-4);
+  // Mit festem Marktwert ist ein Rabatt Gewinn, der Maximalpreis also anders
+  assert.notStrictEqual(Math.round(maxPreis({ ...basis, marktwert: 200000 }, 0.06)), Math.round(mp));
 });

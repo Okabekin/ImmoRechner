@@ -64,8 +64,9 @@ function irr(f){
   return (lo+hi)/2;
 }
 function maxPreis(p, zielIrr, ov){
-  const base=Object.assign({},p,ov||{}); const wert0=p.marktwert>0?p.marktwert:p.kaufpreis;
-  const f=kp=>simulate(base,{kaufpreis:kp,marktwert:wert0}).irr;
+  // Ohne Marktwert gilt Wert = Preis (Wert sinkt mit dem Preis). Nur ein eingetragener Marktwert bleibt fest.
+  const base=Object.assign({},p,ov||{});
+  const f=kp=>simulate(base,{kaufpreis:kp,marktwert:p.marktwert>0?p.marktwert:0}).irr;
   let lo=p.kaufpreis*0.2, hi=p.kaufpreis*2.5;
   if(!(f(lo)>=zielIrr)) return NaN; if(f(hi)>=zielIrr) return Infinity;
   for(let i=0;i<60;i++){ const m=(lo+hi)/2; const v=f(m); if(v>=zielIrr) lo=m; else hi=m; }

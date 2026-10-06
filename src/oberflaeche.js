@@ -147,7 +147,7 @@ function render(){
     <tr class="sum"><td>= Erlös für dich</td><td>${f2(s.erloes)}</td></tr><tr class="sum"><td>IRR</td><td>${pct(irrMain,1)}</td></tr></table>
     <p>Der Zinssatz, den ein Sparkonto bräuchte, um dir bei denselben Einzahlungen am Ende genauso viel zu bringen. Vergleich: ETF ca. ${pct(p.etf,1)} nach Steuern.</p>`;
   POPS.kpi5=`<b>Maximalpreis: höchster Kaufpreis für ${pct(p.zielIrr,1)} IRR</b>
-    <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete, Marktwert und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
+    <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. ${p.marktwert>0?"Der eingetragene Marktwert bleibt fest, ein niedrigerer Preis ist also Rabatt.":"Ohne Marktwert gilt: Die Wohnung ist so viel wert, wie du zahlst. Billiger kaufen senkt also auch den späteren Verkaufspreis."} Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
     <table><tr><td>Angebotspreis</td><td>${f2(KP)}</td></tr><tr><td>Maximalpreis</td><td>${mp===Infinity?"> "+f2(KP*2.5):f2(mp)}</td></tr>
     <tr class="sum"><td>Spielraum</td><td>${isFinite(mp)?sgn(mp-KP):"–"}</td></tr></table>
     <p>Darüber nicht kaufen. Das ist dein Verhandlungsziel.</p>`;
@@ -273,7 +273,7 @@ function render(){
 
   // 8 Maximalpreis
   const mpRow=(ov,lab)=>`<tr><td>${lab}</td>${[0,1.5,2.5].map(w=>{const v=maxPreis(p,p.zielIrr/100,Object.assign({wz:w},ov)); return `<td class="num ${v>=KP?"pos":"neg"}">${!isFinite(v)?"nicht erreichbar":v===Infinity?"> "+eur(KP*2.5):eur(Math.floor(v/500)*500)}</td>`;}).join("")}</tr>`;
-  h+=`<section class="step" id="maxpreis"><h2><span class="n">08</span>Maximalpreis für ${pct(p.zielIrr,1)} IRR</h2><p class="lead">Bis zu welchem Kaufpreis erreichst du deine Ziel-Rendite? Marktwert und Miete bleiben gleich, Nebenkosten und Darlehen passen sich an. Darüber wird nicht gekauft.</p>
+  h+=`<section class="step" id="maxpreis"><h2><span class="n">08</span>Maximalpreis für ${pct(p.zielIrr,1)} IRR</h2><p class="lead">Bis zu welchem Kaufpreis erreichst du deine Ziel-Rendite? Die Miete bleibt gleich, Nebenkosten und Darlehen passen sich an. ${p.marktwert>0?"Der Marktwert bleibt fest (Rabatt-Rechnung).":"Wert = Kaufpreis: Der spätere Verkaufspreis sinkt mit."} Darüber wird nicht gekauft.</p>
   <div class="tw"><table><thead><tr><th>Kaufpreis höchstens</th><th class="num">0 % WZ</th><th class="num">1,5 % WZ</th><th class="num">2,5 % WZ</th></tr></thead><tbody>
    ${mpRow({rnd:false},"Normale AfA")}${mpRow({rnd:true},GL)}
   </tbody></table></div><p class="note">Angebotspreis: <b>${eur(KP)}</b>. Grün = Ziel bei diesem Preis erreichbar. Jede 5 % Preisnachlass sind ${eur(KP*0.05)}.</p></section>`;
