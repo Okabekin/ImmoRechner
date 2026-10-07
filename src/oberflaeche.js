@@ -12,7 +12,8 @@ const GROUPS=[
   ["grest","Grunderwerbsteuer","%",0.1,"Hamburg 5,5 %"],["notar","Notar + Grundbuch","%",0.1,"meist ca. 2 %"],["makler","Makler (Käuferanteil)","%",0.01,"privat: 0, sonst meist 3,57 %"],
   ["nkSumme","Kaufnebenkosten gesamt","out"]]},
  {t:"Finanzierung",open:true,f:[
-  ["ekModus","Eigenkapital","",null,null,[["nk","= Nebenkosten (Kaufpreis voll finanziert)"],["betrag","eigener Betrag"]]],
+  ["ekModus","Eigenkapital","",null,null,[["nk","= Nebenkosten (Kaufpreis voll finanziert)"],["nkpct","Nebenkosten + % vom Kaufpreis"],["betrag","eigener Betrag"]]],
+  ["ekProzent","Zusätzlich vom Kaufpreis","%",1,"nur bei „Nebenkosten + %“"],
   ["ekBetrag","Eigenkapital-Betrag","€",1000,"nur bei „eigener Betrag“"],
   ["zins","Sollzins","%",0.05],["tilg","Anfangstilgung","%",0.1],
   ["bindung","Zinsbindung","Jahre",1],["anschlussZins","Anschlusszins","%",0.1,"Stresstest: +2 Prozentpunkte"],
@@ -33,7 +34,7 @@ const GROUPS=[
   ["vergleichsmiete","Kaltmiete vergleichbare Wohnung","€/Mon.",5,"leer = Kaltmiete oben"],["tagesgeld","Zins für Erspartes","%",0.1,"Was dein Eigenkapital sonst bringen würde"]]}
 ];
 const BASE={stadtteil:"Eidelstedt",kaufpreis:155000,marktwert:0,flaeche:39.6,baujahr:1963,miete:515,hausgeld:219,nichtUml:66,ruecklageQm:0.6,ausfall:2,inventar:0,sonderumlage:0,
- grest:5.5,notar:2,makler:0,ekModus:"nk",ekBetrag:30000,zins:4,tilg:2,bindung:10,anschlussZins:6,anschlussTilg:2,
+ grest:5.5,notar:2,makler:0,ekModus:"nk",ekProzent:10,ekBetrag:30000,zins:4,tilg:2,bindung:10,anschlussZins:6,anschlussTilg:2,
  steuer:35,gebAnteil:70,degressiv:false,rnd:false,rndJahre:25,gutachten:1000,brw:0,grundstueck:0,mea:0,
  halte:10,wz:1.5,mietSteig:2,kostSteig:2,verkaufskosten:0,etf:6,zielIrr:6,liegenschaftszins:2.5,vergleichsmiete:475,tagesgeld:3};
 const PRESETS={
@@ -112,6 +113,7 @@ function render(){
   const s=simulate(p), sStd=simulate(p,STD), sRnd=simulate(p,ALT);
   // Kaufnebenkosten in Euro direkt bei den Eingabefeldern
   for(const [k,v] of [["grest",s.grest],["notar",s.notar],["makler",s.makler]]){ const hi=document.getElementById("hint-"+k); if(hi) hi.textContent=`= ${eur(v)} · ${hi.dataset.base}`; }
+  { const hi=document.getElementById("hint-ekProzent"); if(hi) hi.textContent=p.ekModus==="nkpct"?`= ${eur(s.ek)} Eigenkapital (${eur(s.nk)} Nebenkosten + ${eur(s.ek-s.nk)})`:hi.dataset.base; }
   const nkOut=document.getElementById("out-nkSumme"); if(nkOut) nkOut.innerHTML=`<b>${eur(s.nk)}</b>&nbsp;<small>(${pct(s.nk/p.kaufpreis*100,2)} vom Kaufpreis)</small>`;
   const y1=s.years[0], KP=p.kaufpreis, jm=p.miete*12;
   const faktor=KP/jm, brutto=jm/KP*100;

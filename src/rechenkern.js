@@ -10,7 +10,7 @@ function simulate(p, ov){
   const KP=p.kaufpreis, inv=Math.min(p.inventar||0,KP);
   const {grest,notar,makler,nk}=nebenkosten(p);
   const gesamt=KP+nk;
-  const ek = p.ekModus==='nk' ? nk : Math.min(p.ekBetrag, gesamt);
+  const ek = p.ekModus==='nk' ? nk : p.ekModus==='nkpct' ? Math.min(nk+KP*(p.ekProzent||0)/100, gesamt) : Math.min(p.ekBetrag, gesamt);
   const darlehen=Math.max(0,gesamt-ek);
   const nkQuote=nk/KP;
   const gebBasis=(KP-inv)*(1+nkQuote)*p.gebAnteil/100;

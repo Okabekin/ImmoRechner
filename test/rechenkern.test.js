@@ -56,3 +56,9 @@ test('Maximalpreis: sehr gutes Objekt ist nie "nicht erreichbar"', () => {
   const v = maxPreis({ ...basis, gebAnteil: 65, rnd: true, wz: 2.5 }, 0.06);
   assert.ok(v > basis.kaufpreis);
 });
+
+test('Eigenkapital = Nebenkosten + 10 % vom Kaufpreis', () => {
+  const s = simulate({ ...basis, ekModus: 'nkpct', ekProzent: 10 });
+  assert.strictEqual(Math.round(s.ek), Math.round(s.nk + 20000));
+  assert.strictEqual(Math.round(s.darlehen), 180000);
+});
