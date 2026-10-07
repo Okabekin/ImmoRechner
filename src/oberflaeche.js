@@ -9,7 +9,8 @@ const GROUPS=[
   ["ausfall","Mietausfall","% Miete",0.5],["inventar","Inventar separat (EBK)","€",500,"ohne Grunderwerbsteuer, 10 J. AfA"],
   ["sonderumlage","Sonderumlage Jahr 1","€",500]]},
  {t:"Kaufnebenkosten",f:[
-  ["grest","Grunderwerbsteuer","%",0.1,"Hamburg 5,5 %"],["notar","Notar + Grundbuch","%",0.1],["makler","Makler (Käuferanteil)","%",0.01,"privat: 0, sonst meist 3,57 %"]]},
+  ["grest","Grunderwerbsteuer","%",0.1,"Hamburg 5,5 %"],["notar","Notar + Grundbuch","%",0.1,"meist ca. 2 %"],["makler","Makler (Käuferanteil)","%",0.01,"privat: 0, sonst meist 3,57 %"],
+  ["nkSumme","Kaufnebenkosten gesamt","out"]]},
  {t:"Finanzierung",open:true,f:[
   ["ekModus","Eigenkapital","",null,null,[["nk","= Nebenkosten (Kaufpreis voll finanziert)"],["betrag","eigener Betrag"]]],
   ["ekBetrag","Eigenkapital-Betrag","€",1000,"nur bei „eigener Betrag“"],
@@ -61,6 +62,7 @@ function buildInputs(){
   for(const g of GROUPS){
     h+=`<details class="grp"${g.open?" open":""}><summary>${g.t}</summary><div class="fields">`;
     for(const [id,lab,u,step,hint,opts] of g.f){
+      if(u==="out"){h+=`<div class="f wide"><div class="lab"><label>${lab}</label></div><div class="in out" id="out-${id}">–</div></div>`;continue;}
       if(u==="chk"){h+=`<div class="f wide"><div class="lab"><label class="chk"><input type="checkbox" id="${id}"> ${lab}</label>${ib(id)}</div>${ip(id)}</div>`;continue;}
       if(opts){const o=opts==="STADTTEILE"?Object.keys(MIETEN).map(k=>[k,k]):opts;
         h+=`<div class="f wide"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><select id="${id}">${o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>${ip(id)}</div>`;continue;}
@@ -88,6 +90,8 @@ function render(){
   const fehlt=["kaufpreis","flaeche","baujahr"].filter(k=>!(P[k]>0));
   if(fehlt.length){
     for(const k of EST_FELDER){ const el=document.getElementById(k); if(el&&P[k]===null&&document.activeElement!==el){ el.value=""; el.classList.remove("est"); } }
+    for(const k of ["grest","notar","makler"]){ const hi=document.getElementById("hint-"+k); if(hi) hi.textContent=hi.dataset.base; }
+    const nkOut=document.getElementById("out-nkSumme"); if(nkOut) nkOut.textContent="–";
     const namen={kaufpreis:"Kaufpreis",flaeche:"Wohnfläche",baujahr:"Baujahr"};
     LAST_SUMMARY="Noch kein Objekt eingegeben."; $("#out").innerHTML=`<section class="step leer"><h2>Neues Objekt</h2><p class="lead">Trag links mindestens <b>${fehlt.map(k=>namen[k]).join(", ")}</b> ein. Alles andere kannst du leer lassen: Fehlt die Miete oder das Hausgeld, schätzt der Rechner sie aus dem Stadtteil und zeigt dir den Wert direkt im Feld.</p><p class="lead">Deine Einstellungen zu Finanzierung, Steuer und Prognose sind geblieben.</p></section>`;
     return;
@@ -106,6 +110,9 @@ function render(){
     if(!geschaetzt) el.classList.remove("est");
     if(hint){ hint.textContent=geschaetzt?(est[k]?"Geschätzt: "+est[k].replace(/^[^0-9]*/,"")+". Eigenen Wert eintragen, wenn bekannt.":"Geschätzt: wie Kaltmiete oben."):hint.dataset.base; hint.classList.toggle("warn",geschaetzt); } }
   const s=simulate(p), sStd=simulate(p,STD), sRnd=simulate(p,ALT);
+  // Kaufnebenkosten in Euro direkt bei den Eingabefeldern
+  for(const [k,v] of [["grest",s.grest],["notar",s.notar],["makler",s.makler]]){ const hi=document.getElementById("hint-"+k); if(hi) hi.textContent=`= ${eur(v)} · ${hi.dataset.base}`; }
+  const nkOut=document.getElementById("out-nkSumme"); if(nkOut) nkOut.innerHTML=`<b>${eur(s.nk)}</b>&nbsp;<small>(${pct(s.nk/p.kaufpreis*100,2)} vom Kaufpreis)</small>`;
   const y1=s.years[0], KP=p.kaufpreis, jm=p.miete*12;
   const faktor=KP/jm, brutto=jm/KP*100;
   const rein=jm*(1-p.ausfall/100)-p.nichtUml*12-p.ruecklageQm*p.flaeche*12;
