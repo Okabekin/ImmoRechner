@@ -120,6 +120,9 @@ function render(){
     if(geschaetzt&&document.activeElement!==el){ el.value=Math.round(p[k]); el.classList.add("est"); }
     if(!geschaetzt) el.classList.remove("est");
     if(hint){ hint.textContent=geschaetzt?(est[k]?"Geschätzt: "+est[k].replace(/^[^0-9]*/,"")+". Eigenen Wert eintragen, wenn bekannt.":"Geschätzt: wie Kaltmiete oben."):hint.dataset.base; hint.classList.toggle("warn",geschaetzt); } }
+  // Kaltmiete zusätzlich in €/m² und im Vergleich zum Stadtteil
+  { const hi=document.getElementById("hint-miete"); if(hi&&P.miete!==null&&p.miete>0&&p.flaeche>0){ const qm=p.miete/p.flaeche, st=MIETEN[p.stadtteil];
+      hi.textContent=`= ${nf(2).format(qm)} €/m²`+(st?` · ${p.stadtteil}: ${nf(2).format(st)} €/m² Angebot`:""); } }
   const s=simulate(p), sStd=simulate(p,STD), sRnd=simulate(p,ALT);
   // Kaufnebenkosten in Euro direkt bei den Eingabefeldern
   for(const [k,v] of [["grest",s.grest],["notar",s.notar],["makler",s.makler]]){ const hi=document.getElementById("hint-"+k); if(hi) hi.textContent=`= ${eur(v)} · ${hi.dataset.base}`; }
