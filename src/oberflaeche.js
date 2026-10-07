@@ -68,6 +68,7 @@ function buildInputs(){
       if(opts){const o=opts==="STADTTEILE"?Object.keys(MIETEN).map(k=>[k,k]):opts;
         h+=`<div class="f wide"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><select id="${id}">${o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>${ip(id)}</div>`;continue;}
       const wide=hint&&hint.length>34?" wide":"";
+      if(id==="kaufpreis"){h+=`<div class="f"><div class="lab"><label for="${id}">${lab}</label><span class="lab-r">${ib(id)}<button type="button" class="mini" id="kp-10">−10 %</button></span></div><div class="in"><input id="${id}" type="number" inputmode="decimal" step="${step}"><span class="u">${u}</span></div><span class="hint" id="hint-kaufpreis" data-base=""></span></div>`;continue;}
       h+=`<div class="f${wide}"><div class="lab"><label for="${id}">${lab}</label>${ib(id)}</div><div class="in"><input id="${id}" type="number" inputmode="decimal" step="${step}"><span class="u">${u}</span></div>${hint?`<span class="hint" id="hint-${id}" data-base="${hint}">${hint}</span>`:""}${ip(id)}</div>`;
     }
     h+=`</div></details>`;
@@ -78,7 +79,13 @@ function buildInputs(){
   box.addEventListener("input",e=>{const el=e.target; if(!el.id) return;
     if(el.type==="checkbox") P[el.id]=el.checked; else if(el.tagName==="SELECT") P[el.id]=el.value;
     else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:(OPT_LEER.has(el.id)?null:0); el.classList.remove("est"); }
+    if(el.id==="kaufpreis") P.kpAngebot=null;
     save(); render();});
+  // −10 %: Kaufpreis auf verhandelten Preis setzen, zweiter Klick stellt den Angebotspreis wieder her
+  document.getElementById("kp-10").addEventListener("click",()=>{
+    if(P.kpAngebot>0){ P.kaufpreis=P.kpAngebot; P.kpAngebot=null; }
+    else if(P.kaufpreis>0){ P.kpAngebot=P.kaufpreis; P.kaufpreis=Math.round(P.kaufpreis*0.9/100)*100; }
+    fillInputs(); save(); render(); });
 }
 function fillInputs(){ for(const k in P){ const el=document.getElementById(k); if(!el) continue;
   if(el.type==="checkbox") el.checked=!!P[k]; else if(el.tagName==="SELECT") el.value=P[k];
@@ -98,6 +105,9 @@ function render(){
     return;
   }
   const {q:p,est}=schaetzen(P);
+  { const b=document.getElementById("kp-10"), hi=document.getElementById("hint-kaufpreis"), ang=P.kpAngebot>0;
+    if(b){ b.textContent=ang?"↺":"−10 %"; b.title=ang?"Zurück zum Angebotspreis":"Kaufpreis um 10 % runterhandeln"; b.classList.toggle("on",ang); }
+    if(hi){ hi.textContent=ang?`Angebot ${eur(P.kpAngebot)}, verhandelt −${eur(P.kpAngebot-P.kaufpreis)}`:""; hi.classList.toggle("ok",ang); } }
   const rndOk=p.baujahr<1980, GL=rndOk?"Mit Gutachten":"Mit Gutachten (unrealistisch ab Bj. 1980)";
   // Zweite AfA-Variante: bei Neubau (ab Bj. 2023) degressiv 5 %, sonst Restnutzungsdauer-Gutachten
   const neubau=p.baujahr>=2023, STD={rnd:false,degressiv:false}, ALT=neubau?{rnd:false,degressiv:true}:{rnd:true,degressiv:false};
@@ -324,7 +334,7 @@ function render(){
   const g=k=>(P[k]===null?" (geschätzt)":"");
   LAST_SUMMARY=[
    "Immobilien-Rechner – Werte",
-   `Objekt: ${p.stadtteil}, ${num(p.flaeche,1)} m², Baujahr ${p.baujahr}, Kaufpreis ${eur(KP)}${p.marktwert>0?`, Marktwert ${eur(p.marktwert)}`:""}`,
+   `Objekt: ${p.stadtteil}, ${num(p.flaeche,1)} m², Baujahr ${p.baujahr}, Kaufpreis ${eur(KP)}${P.kpAngebot>0?` (Angebot ${eur(P.kpAngebot)}, −10 % verhandelt)`:""}${p.marktwert>0?`, Marktwert ${eur(p.marktwert)}`:""}`,
    `Kaltmiete ${eur(p.miete)}/Mon.${g("miete")}, Hausgeld ${eur(p.hausgeld)}${g("hausgeld")}, davon nicht umlegbar ${eur(p.nichtUml)}${g("nichtUml")}, eigene Rücklage ${num(p.ruecklageQm,2)} €/m², Mietausfall ${pct(p.ausfall,1)}, Inventar ${eur(p.inventar||0)}, Sonderumlage ${eur(p.sonderumlage||0)}`,
    `Nebenkosten: GrESt ${pct(p.grest,1)}, Notar ${pct(p.notar,1)}, Makler ${pct(p.makler,2)} = ${eur(s.nk)}`,
    `Finanzierung: Eigenkapital ${eur(s.ek)}, Darlehen ${eur(s.darlehen)}, Zins ${pct(p.zins,2)}, Tilgung ${pct(p.tilg,1)}, Bindung ${p.bindung} J., Anschlusszins ${pct(p.anschlussZins,1)}`,
@@ -403,6 +413,6 @@ neuBtn.addEventListener("click",()=>{
     neuTimer=setTimeout(()=>{neuBtn.classList.remove("confirm"); neuBtn.textContent="Neues Objekt";},4000); return; }
   clearTimeout(neuTimer); neuBtn.classList.remove("confirm"); neuBtn.textContent="Neues Objekt";
   P=Object.assign({},P,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:null,marktwert:0,flaeche:null,baujahr:null,miete:null,hausgeld:null,nichtUml:null,
-    ruecklageQm:BASE.ruecklageQm,ausfall:BASE.ausfall,inventar:0,sonderumlage:0,makler:3.57,brw:0,grundstueck:0,mea:0,vergleichsmiete:null,rnd:false,degressiv:false});
+    ruecklageQm:BASE.ruecklageQm,ausfall:BASE.ausfall,inventar:0,sonderumlage:0,makler:3.57,brw:0,grundstueck:0,mea:0,vergleichsmiete:null,rnd:false,degressiv:false,kpAngebot:null});
   fillInputs(); save(); render(); document.getElementById("kaufpreis").focus();
 });
