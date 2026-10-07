@@ -97,6 +97,9 @@ function render(){
   // Zweite AfA-Variante: bei Neubau (ab Bj. 2023) degressiv 5 %, sonst Restnutzungsdauer-Gutachten
   const neubau=p.baujahr>=2023, STD={rnd:false,degressiv:false}, ALT=neubau?{rnd:false,degressiv:true}:{rnd:true,degressiv:false};
   const ALTL=neubau?"Degressiv 5 % (Neubau)":GL, altAktiv=neubau?!!p.degressiv:!!p.rnd;
+  // Zwischenstufe 3 % (Gutachten mit 33 Jahren Restnutzungsdauer), nur wenn sie nicht schon eine der beiden Spalten ist
+  const A3={rnd:true,rndJahre:100/3,degressiv:false}, A3L="AfA 3 % (Gutachten 33 J.)";
+  const zeigA3=()=>sStd.afaSatz!==3&&!(!neubau&&Math.abs(sRnd.afaSatz-3)<0.01);
   for(const k of EST_FELDER){ const el=document.getElementById(k), hint=document.getElementById("hint-"+k); if(!el) continue;
     const geschaetzt=P[k]===null;
     if(geschaetzt&&document.activeElement!==el){ el.value=Math.round(p[k]); el.classList.add("est"); }
@@ -156,7 +159,7 @@ function render(){
     <p>Der Zinssatz, den ein Sparkonto bräuchte, um dir bei denselben Einzahlungen am Ende genauso viel zu bringen. Vergleich: ETF ca. ${pct(p.etf,1)} nach Steuern.</p>`;
   POPS.kpi5=`<b>Maximalpreis: höchster Kaufpreis für ${pct(p.zielIrr,1)} IRR</b>
     <p>Der Rechner probiert so lange Kaufpreise durch, bis der IRR genau ${pct(p.zielIrr,1)} ergibt. Miete und alle anderen Eingaben bleiben gleich, Nebenkosten und Kredit passen sich an. ${p.marktwert>0?"Der eingetragene Marktwert bleibt fest, ein niedrigerer Preis ist also Rabatt.":"Ohne Marktwert gilt: Die Wohnung ist so viel wert, wie du zahlst. Billiger kaufen senkt also auch den späteren Verkaufspreis."} Gerechnet mit ${pct(p.wz,1)} Wertzuwachs und ${(neubau&&p.degressiv)?"degressiver AfA":p.rnd?"Gutachten-AfA":"normaler AfA"}.</p>
-    <table><tr><td>Angebotspreis</td><td>${f2(KP)}</td></tr><tr><td>Maximalpreis</td><td>${mp===Infinity?"> "+f2(KP*2.5):f2(mp)}</td></tr>
+    <table><tr><td>Angebotspreis</td><td>${f2(KP)}</td></tr><tr><td>Maximalpreis</td><td>${mp===Infinity?"> "+f2(KP*2.5):!isFinite(mp)?"nicht erreichbar":f2(mp)}</td></tr>
     <tr class="sum"><td>${mp>=KP?"Puffer bis zur Grenze":"Muss runter um"}</td><td>${isFinite(mp)?sgn(mp-KP):"–"}</td></tr></table>
     <p>${mp>=KP?"Der Angebotspreis liegt unter deiner Grenze, die Ziel-Rendite wird schon erreicht. Der Maximalpreis ist eine Obergrenze, kein Ziel: Trotzdem runterhandeln, jeder Euro weniger erhöht deine Rendite.":"Der Angebotspreis liegt über deiner Grenze. Darüber nicht kaufen: Erst ab diesem Preis erreichst du die Ziel-Rendite. Verhandle darunter."}</p>`;
   const kpi=(k,l,v,pl)=>`<div class="kpi" data-pop="${k}" tabindex="0"><span class="l">${l}</span><span class="v">${v}</span>${pl}<span class="how">Wie berechnet?</span></div>`;
@@ -247,15 +250,15 @@ function render(){
   <p class="note">Mehr über 15-%-Grenze, Kaufpreisaufteilung und Inventar in Lektion 6, Abschnitt 5. Liegt dein Gebäudeanteil unter dem Wert aus dem Bodenrichtwert, lohnt sich die Aufteilung im Notarvertrag. Jeder Prozentpunkt Gebäudeanteil bringt hier ${eur(s.gebBasis/p.gebAnteil*s.afaSatz/100*p.steuer/100)} Steuerersparnis pro Jahr.</p></section>`;
 
   // 6 Rendite
-  const wzs=[0,1.5,2.5]; if(!wzs.includes(p.wz)) wzs.push(p.wz);
-  const irrRow=(ov,lab)=>`<tr><td>${lab}</td>${wzs.map(w=>{const v=simulate(p,Object.assign({wz:w},ov)).irr*100; const hl=(w===p.wz&&(ov===ALT)===altAktiv)?" hl":""; return `<td class="num ${cls(v-p.etf)}${hl}">${pct(v,1)}</td>`;}).join("")}</tr>`;
+  const wzs=[0,1,1.5,2.5]; if(!wzs.includes(p.wz)) { wzs.push(p.wz); wzs.sort((a,b)=>a-b); }
+  const irrRow=(ov,lab)=>`<tr><td>${lab}</td>${wzs.map(w=>{const v=simulate(p,Object.assign({wz:w},ov)).irr*100; const hl=(w===p.wz&&ov===(altAktiv?ALT:STD))?" hl":""; return `<td class="num ${cls(v-p.etf)}${hl}">${pct(v,1)}</td>`;}).join("")}</tr>`;
   const ekRow=(ov,lab)=>`<tr><td>${lab}</td>${wzs.map(w=>{const x=simulate(p,Object.assign({wz:w},ov)); const a=x.years[0]; return `<td class="num">${pct((a.cfNach+a.tilg+x.wert0*w/100)/x.ek*100,0)}</td>`;}).join("")}</tr>`;
   const last=s.years[s.N-1];
   h+=`<section class="step" id="rendite"><h2><span class="n">06</span>Eigenkapitalrendite und IRR</h2><p class="lead">Der IRR zählt jede Zuzahlung mit und ist mit einem ETF (${pct(p.etf,1)} nach Steuern) direkt vergleichbar. Die EK-Rendite Jahr 1 schönt, weil sie die späteren Zuzahlungen ignoriert.</p>
   <div class="tw"><table><thead><tr><th>IRR über ${s.N} Jahre</th>${wzs.map(w=>`<th class="num">${pct(w,1)} WZ</th>`).join("")}</tr></thead><tbody>
-   ${irrRow(STD,`Normale AfA (${pct(sStd.afaSatz,1)})`)}${irrRow(ALT,neubau?ALTL:`${GL} (${pct(sRnd.afaSatz,1)})`)}
+   ${irrRow(STD,`Normale AfA (${pct(sStd.afaSatz,1)})`)}${zeigA3()?irrRow(A3,A3L):""}${irrRow(ALT,neubau?ALTL:`${GL} (${pct(sRnd.afaSatz,1)})`)}
   </tbody><thead><tr><th>EK-Rendite Jahr 1 (statisch)</th>${wzs.map(w=>`<th class="num">${pct(w,1)} WZ</th>`).join("")}</tr></thead><tbody>
-   ${ekRow(STD,"Normale AfA")}${ekRow(ALT,ALTL)}
+   ${ekRow(STD,"Normale AfA")}${zeigA3()?ekRow(A3,A3L):""}${ekRow(ALT,ALTL)}
   </tbody></table></div>
   <div class="cols" style="margin-top:14px"><div class="tw"><table><tbody>
    ${row("Eingesetztes Eigenkapital",eur(s.ek))}${row(`Zuzahlungen über ${s.N} Jahre`,eur(s.zuz))}
@@ -280,10 +283,10 @@ function render(){
   </tbody></table></div></section>`;
 
   // 8 Maximalpreis
-  const mpRow=(ov,lab)=>`<tr><td>${lab}</td>${[0,1.5,2.5].map(w=>{const v=maxPreis(p,p.zielIrr/100,Object.assign({wz:w},ov)); return `<td class="num ${v>=KP?"pos":"neg"}">${!isFinite(v)?"nicht erreichbar":v===Infinity?"> "+eur(KP*2.5):eur(Math.floor(v/500)*500)}</td>`;}).join("")}</tr>`;
+  const mpRow=(ov,lab)=>`<tr><td>${lab}</td>${[0,1,1.5,2.5].map(w=>{const v=maxPreis(p,p.zielIrr/100,Object.assign({wz:w},ov)); return `<td class="num ${v>=KP?"pos":"neg"}">${v===Infinity?"> "+eur(KP*2.5):!isFinite(v)?"nicht erreichbar":eur(Math.floor(v/500)*500)}</td>`;}).join("")}</tr>`;
   h+=`<section class="step" id="maxpreis"><h2><span class="n">08</span>Maximalpreis für ${pct(p.zielIrr,1)} IRR</h2><p class="lead">Bis zu welchem Kaufpreis erreichst du deine Ziel-Rendite? Die Miete bleibt gleich, Nebenkosten und Darlehen passen sich an. ${p.marktwert>0?"Der Marktwert bleibt fest (Rabatt-Rechnung).":"Wert = Kaufpreis: Der spätere Verkaufspreis sinkt mit."} Darüber wird nicht gekauft.</p>
-  <div class="tw"><table><thead><tr><th>Kaufpreis höchstens</th><th class="num">0 % WZ</th><th class="num">1,5 % WZ</th><th class="num">2,5 % WZ</th></tr></thead><tbody>
-   ${mpRow(STD,"Normale AfA")}${mpRow(ALT,ALTL)}
+  <div class="tw"><table><thead><tr><th>Kaufpreis höchstens</th><th class="num">0 % WZ</th><th class="num">1 % WZ</th><th class="num">1,5 % WZ</th><th class="num">2,5 % WZ</th></tr></thead><tbody>
+   ${mpRow(STD,"Normale AfA")}${zeigA3()?mpRow(A3,A3L):""}${mpRow(ALT,ALTL)}
   </tbody></table></div><p class="note">Angebotspreis: <b>${eur(KP)}</b>. Grün = Ziel bei diesem Preis erreichbar. Jede 5 % Preisnachlass sind ${eur(KP*0.05)}.</p></section>`;
 
   // 9 Jahrestabelle

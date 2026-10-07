@@ -51,3 +51,8 @@ test('Degressive AfA: 5 % vom Restwert, nur ab Baujahr 2023', () => {
   assert.strictEqual(Math.round(simulate(neu, { degressiv: false }).years[0].afa), 10135); // linear 3 %
   assert.strictEqual(simulate({ ...basis, degressiv: true }).years[0].afa, simulate(basis).years[0].afa); // Bj. 1965: keine Wirkung
 });
+
+test('Maximalpreis: sehr gutes Objekt ist nie "nicht erreichbar"', () => {
+  const v = maxPreis({ ...basis, gebAnteil: 65, rnd: true, wz: 2.5 }, 0.06);
+  assert.ok(v > basis.kaufpreis);
+});

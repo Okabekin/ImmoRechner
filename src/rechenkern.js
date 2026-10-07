@@ -70,7 +70,9 @@ function irr(f){
 function maxPreis(p, zielIrr, ov){
   // Ohne Marktwert gilt Wert = Preis (Wert sinkt mit dem Preis). Nur ein eingetragener Marktwert bleibt fest.
   const base=Object.assign({},p,ov||{});
-  const f=kp=>simulate(base,{kaufpreis:kp,marktwert:p.marktwert>0?p.marktwert:0}).irr;
+  const f=kp=>{ const x=simulate(base,{kaufpreis:kp,marktwert:p.marktwert>0?p.marktwert:0});
+    // Kein Vorzeichenwechsel: nur Einnahmen = unendlich gut, nur Ausgaben = unendlich schlecht
+    return isNaN(x.irr) ? (x.flows.every(c=>c>=0)||x.flows.reduce((s,c)=>s+c,0)>0 ? Infinity : -Infinity) : x.irr; };
   let lo=p.kaufpreis*0.2, hi=p.kaufpreis*2.5;
   if(!(f(lo)>=zielIrr)) return NaN; if(f(hi)>=zielIrr) return Infinity;
   for(let i=0;i<60;i++){ const m=(lo+hi)/2; const v=f(m); if(v>=zielIrr) lo=m; else hi=m; }
