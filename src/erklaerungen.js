@@ -1,6 +1,6 @@
 /* Erklärungen zu jedem Eingabefeld (Info-Knopf) */
 const INFO={
- stadtteil:"Wird nur für Schätzungen gebraucht. Fehlt im Inserat die Miete, schätzt der Rechner sie aus der typischen Angebotsmiete im Stadtteil (immoportal.com, Stand Oktober 2026) minus 12 %. Der Abschlag steht für Bestandswohnungen und die Mietpreisbremse: Bei Neuvermietung sind höchstens 10 % über dem Mietenspiegel erlaubt. Beispiel Eidelstedt: 14,70 €/m² Angebot, geschätzt ca. 12,90 €/m². Bei Neubau ab 2014 gilt die Mietpreisbremse nicht, dann ohne Abschlag.",
+ stadtteil:"Wird nur für Schätzungen gebraucht. Fehlt im Inserat die Miete, schätzt der Rechner sie aus der typischen Angebotsmiete im Stadtteil (immoportal.com, Stand Oktober 2026) minus 12 %. Der Abschlag steht für Bestandswohnungen und die Mietpreisbremse: Bei Neuvermietung sind höchstens 10 % über dem Mietenspiegel erlaubt. Beispiel Eidelstedt: 14,70 €/m² Angebot, geschätzt ca. 12,90 €/m². Bei Baujahr 2014 bis 2022 gilt die Mietpreisbremse nicht, dann ohne Abschlag. Bei Neubau ab Baujahr 2023 (Erstbezug) rechnet er 20 % mehr als der Stadtteil-Schnitt, weil neue Wohnungen deutlich teurer vermietet werden.",
  kaufpreis:"Der Preis im Inserat bzw. dein verhandelter Preis. Darauf werden Grunderwerbsteuer, Notar und Makler berechnet.",
  marktwert:"Nur ausfüllen, wenn du die Wohnung unter Wert kaufst, z. B. 190.000 € für eine Wohnung, die eigentlich 200.000 € wert ist (Erbengemeinschaft, Zwangsversteigerung, gut verhandelt). Der Wertzuwachs und der spätere Verkauf werden dann ab dem echten Wert gerechnet, nicht ab deinem Kaufpreis. So sieht man, was ein guter Einkauf bringt. Leer lassen heißt: Marktwert = Kaufpreis.",
  flaeche:"Wohnfläche laut Exposé. Daraus rechnet der Rechner Preis pro m², Miete pro m², die eigene Rücklage und Schätzungen.",
@@ -49,8 +49,9 @@ const MIETEN={"Hamburg (Durchschnitt)":15.19,Alsterdorf:17.24,"Altona-Altstadt":
 function schaetzen(p){
   const q={...p}, est={};
   const leer=v=>v===null||v===undefined||v==="";
-  if(leer(q.miete)){ const a=MIETEN[q.stadtteil]||MIETEN["Hamburg (Durchschnitt)"]; const f=q.baujahr>=2014?1:0.88;
-    q.miete=Math.round(a*f*q.flaeche/5)*5; est.miete=`Kaltmiete ${Math.round(q.miete)} € (${String((a*f).toFixed(2)).replace(".",",")} €/m² aus ${q.stadtteil||"Hamburg-Schnitt"})`; }
+  if(leer(q.miete)){ const a=MIETEN[q.stadtteil]||MIETEN["Hamburg (Durchschnitt)"]; // Neubau/Erstbezug ab Bj. 2023: +20 % auf den Stadtteil-Schnitt; 2014–2022 ohne Mietpreisbremse: Schnitt; älter: −12 %
+    const f=q.baujahr>=2023?1.2:q.baujahr>=2014?1:0.88;
+    q.miete=Math.round(a*f*q.flaeche/5)*5; est.miete=`Kaltmiete ${Math.round(q.miete)} € (${String((a*f).toFixed(2)).replace(".",",")} €/m² aus ${q.stadtteil||"Hamburg-Schnitt"}${f>1?", Neubau +20 %":""})`; }
   if(leer(q.hausgeld)){ q.hausgeld=Math.round((q.flaeche<50?4.5:4)*q.flaeche); est.hausgeld=`Hausgeld ${q.hausgeld} € (${q.flaeche<50?"4,50":"4,00"} €/m²)`; }
   if(leer(q.nichtUml)){ q.nichtUml=Math.round(q.hausgeld*0.35); est.nichtUml=`nicht umlegbar ${q.nichtUml} € (35 % vom Hausgeld)`; }
   if(leer(q.vergleichsmiete)){ q.vergleichsmiete=q.miete; }
