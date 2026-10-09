@@ -80,6 +80,8 @@ function buildInputs(){
     if(el.type==="checkbox") P[el.id]=el.checked; else if(el.tagName==="SELECT") P[el.id]=el.value;
     else { const v=parseFloat(el.value); P[el.id]=isFinite(v)?v:(OPT_LEER.has(el.id)?null:0); el.classList.remove("est"); }
     if(el.id==="kaufpreis") P.kpAngebot=null;
+    // Umland in Schleswig-Holstein: dort 6,5 % Grunderwerbsteuer statt 5,5 % in Hamburg
+    if(el.id==="stadtteil"){ const sh=/Schleswig-Holstein/.test(P.stadtteil); if(sh&&P.grest===5.5) P.grest=6.5; if(!sh&&P.grest===6.5) P.grest=5.5; fillInputs(); }
     save(); render();});
   // −10 %: Kaufpreis auf verhandelten Preis setzen, zweiter Klick stellt den Angebotspreis wieder her
   document.getElementById("kp-10").addEventListener("click",()=>{
