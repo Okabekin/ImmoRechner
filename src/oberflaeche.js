@@ -310,8 +310,8 @@ function render(){
 
   // 9 Jahrestabelle
   h+=`<section class="step" id="jahre"><h2><span class="n">09</span>Jahr für Jahr</h2>
-  <div class="tw"><table><thead><tr><th>Jahr</th><th class="num">Kaltmiete</th><th class="num">Zins</th><th class="num">Tilgung</th><th class="num">AfA</th><th class="num">CF vor St.</th><th class="num">Steuer</th><th class="num">CF nach St.</th><th class="num">Restschuld</th><th class="num">Wert</th><th class="num">Vermögen</th></tr></thead><tbody>
-  ${s.years.map(r=>`<tr><td>${r.y}</td><td class="num">${eur(r.miete)}</td><td class="num">${eur(r.zins)}</td><td class="num">${eur(r.tilg)}</td><td class="num">${eur(r.afa)}</td><td class="num ${cls(r.cfVor)}">${eur(r.cfVor)}</td><td class="num ${cls(r.steuer)}">${sgn(r.steuer)}</td><td class="num ${cls(r.cfNach)}">${eur(r.cfNach)}</td><td class="num">${eur(r.restschuld)}</td><td class="num">${eur(r.wert)}</td><td class="num">${eur(r.vermoegen)}</td></tr>`).join("")}
+  <div class="tw"><table><thead><tr><th>Jahr</th><th class="num">Kaltmiete</th><th class="num" title="Mietausfall + nicht umlegbares Hausgeld + eigene Rücklage">Kosten</th><th class="num">Zins</th><th class="num">Tilgung</th><th class="num">AfA</th><th class="num">CF vor St.</th><th class="num">Steuer</th><th class="num">CF nach St.</th><th class="num">Restschuld</th><th class="num">Wert</th><th class="num">Vermögen</th></tr></thead><tbody>
+  ${s.years.map(r=>`<tr><td>${r.y}</td><td class="num">${eur(r.miete)}</td><td class="num">${eur(r.ausfall+r.nu+r.rue)}</td><td class="num">${eur(r.zins)}</td><td class="num">${eur(r.tilg)}</td><td class="num">${eur(r.afa)}</td><td class="num ${cls(r.cfVor)}">${eur(r.cfVor)}</td><td class="num ${cls(r.steuer)}">${sgn(r.steuer)}</td><td class="num ${cls(r.cfNach)}">${eur(r.cfNach)}</td><td class="num">${eur(r.restschuld)}</td><td class="num">${eur(r.wert)}</td><td class="num">${eur(r.vermoegen)}</td></tr>`).join("")}
   </tbody></table></div></section>`;
 
   // 10 Eigennutzung
