@@ -123,6 +123,14 @@ td.hl{background:var(--accent-soft);font-weight:600}
 .foot{color:var(--muted);font-size:12px;margin-top:8px;max-width:90ch}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.presets input.s-name{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);width:190px;max-width:100%}
+.presets.saved{flex-basis:100%}
+.saved .chip{text-transform:none;letter-spacing:0;font-size:inherit;color:inherit;display:inline-flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.saved .chip button{border:0;border-radius:0}
+.saved .chip button.del{padding:6px 9px;color:var(--muted)}
+.saved .chip button.del.confirm{background:var(--bad);color:#fff}
+.saved .chip.on{border-color:var(--accent)}
+.saved .chip.on button.load{background:var(--accent);color:#fff}
 </style>
 <style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
 </head>
@@ -133,11 +141,10 @@ td.hl{background:var(--accent-soft);font-weight:600}
     <h1>Immobilien-Rechner Hamburg</h1>
     <p class="sub">Exposé-Daten links eintragen, rechts stehen alle Rechnungen aus dem Lernpfad: vom Kaufpreisfaktor bis zum IRR über die Haltedauer. Jede Änderung rechnet sofort neu.</p>
   </div>
-  <div class="presets"><button type="button" id="p-neu" class="neu">Neues Objekt</button><button type="button" id="p-copy">Werte kopieren</button><span>Beispiel laden</span>
-    <button type="button" id="p-eid" data-preset="eid">Übung 5 Eidelstedt</button>
-    <button type="button" id="p-l6" data-preset="l6">Lektion 6 Beispiel</button>
-    <button type="button" id="p-l3" data-preset="l3">Lektion 3 Beispiel</button>
+  <div class="presets"><button type="button" id="p-neu" class="neu">Neues Objekt</button><button type="button" id="p-copy">Werte kopieren</button>
+    <input type="text" id="s-name" class="s-name" placeholder="Name, z. B. Jenfeld 2-Zi" aria-label="Name für das gespeicherte Objekt" maxlength="40"><button type="button" id="s-save">Speichern</button>
   </div>
+  <div class="presets saved" id="saved" hidden></div>
 </header>
 <div class="grid">
   <aside class="inputs" id="inputs" aria-label="Eingaben"></aside>

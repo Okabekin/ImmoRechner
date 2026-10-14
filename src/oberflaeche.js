@@ -37,11 +37,6 @@ const BASE={stadtteil:"Eidelstedt",kaufpreis:155000,marktwert:0,flaeche:39.6,bau
  grest:5.5,notar:2,makler:0,ekModus:"nk",ekProzent:10,ekBetrag:30000,zins:4,tilg:2,bindung:10,anschlussZins:6,anschlussTilg:2,
  steuer:35,gebAnteil:70,degressiv:false,rnd:false,rndJahre:25,gutachten:1000,brw:0,grundstueck:0,mea:0,
  halte:10,wz:1.5,mietSteig:2,kostSteig:2,verkaufskosten:0,etf:6,zielIrr:6,liegenschaftszins:2.5,vergleichsmiete:475,tagesgeld:3};
-const PRESETS={
- eid:Object.assign({},BASE),
- l6:Object.assign({},BASE,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:200000,marktwert:0,flaeche:50,baujahr:1965,miete:675,hausgeld:300,nichtUml:110,ruecklageQm:0.8,makler:3.57,zins:3.8,gebAnteil:50,vergleichsmiete:675}),
- l3:Object.assign({},BASE,{stadtteil:"Hamburg (Durchschnitt)",kaufpreis:300000,marktwert:0,flaeche:60,baujahr:1970,miete:840,hausgeld:300,nichtUml:120,ruecklageQm:50/60,makler:3.57,ekModus:"betrag",ekBetrag:60000,zins:3.8,gebAnteil:70,vergleichsmiete:840})
-};
 let P=Object.assign({},BASE);
 try{const s=JSON.parse(localStorage.getItem("immo-rechner-v1")||"null"); if(s) P=Object.assign({},BASE,s);}catch(e){}
 
@@ -403,7 +398,35 @@ function drawChart(s){
 function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(Math.max(x,1)))); const n=x/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p;}
 
 buildInputs(); fillInputs(); render();
-document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{P=Object.assign({},PRESETS[b.dataset.preset]); fillInputs(); save(); render();}));
+/* Objekte speichern: lokal im Browser bzw. in der App, gleicher Name überschreibt */
+const OBJ_KEY="immo-rechner-objekte";
+const ladeObjekte=()=>{ try{ const a=JSON.parse(localStorage.getItem(OBJ_KEY)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
+const schreibeObjekte=a=>{ try{ localStorage.setItem(OBJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } };
+let aktivObjekt=null;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const standardName=()=>[P.stadtteil&&!/Durchschnitt/.test(P.stadtteil)?P.stadtteil.replace(/ \(.*\)$/,""):"Objekt", P.kaufpreis>0?eur(P.kaufpreis):""].filter(Boolean).join(", ");
+function zeigeObjekte(){
+  const box=$("#saved"), liste=ladeObjekte(); box.hidden=!liste.length;
+  box.innerHTML=liste.length?`<span>Gespeichert</span>`+liste.map((o,i)=>`<span class="chip${o.name===aktivObjekt?" on":""}"><button type="button" class="load" data-i="${i}" title="Laden (gespeichert ${esc(o.datum||"")})">${esc(o.name)}</button><button type="button" class="del" data-i="${i}" aria-label="${esc(o.name)} löschen" title="Löschen">×</button></span>`).join(""):"";
+  $("#s-name").placeholder=standardName();
+}
+$("#s-name").addEventListener("focus",zeigeObjekte);
+const speichern=()=>{
+  const inp=$("#s-name"), name=(inp.value.trim()||standardName()).slice(0,40), btn=$("#s-save");
+  const liste=ladeObjekte().filter(o=>o.name!==name);
+  liste.push({name,datum:new Date().toLocaleDateString("de-DE"),P:Object.assign({},P)});
+  const ok=schreibeObjekte(liste); aktivObjekt=name; inp.value=""; zeigeObjekte();
+  btn.textContent=ok?"Gespeichert ✓":"Speichern nicht möglich"; setTimeout(()=>btn.textContent="Speichern",2000);
+};
+$("#s-save").addEventListener("click",speichern);
+$("#s-name").addEventListener("keydown",e=>{ if(e.key==="Enter") speichern(); });
+$("#saved").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return; const liste=ladeObjekte(), o=liste[+b.dataset.i]; if(!o) return;
+  if(b.classList.contains("load")){ P=Object.assign({},BASE,o.P); aktivObjekt=o.name; fillInputs(); save(); render(); zeigeObjekte(); return; }
+  if(!b.classList.contains("confirm")){ b.classList.add("confirm"); b.textContent="Löschen?"; setTimeout(()=>{ if(b.isConnected){ b.classList.remove("confirm"); b.textContent="×"; } },3000); return; }
+  schreibeObjekte(liste.filter(x=>x!==o)); if(aktivObjekt===o.name) aktivObjekt=null; zeigeObjekte();
+});
+zeigeObjekte();
 /* Neues Objekt: Objektdaten leeren, eigene Einstellungen behalten. Zweiter Klick bestätigt. */
 /* Werte kopieren, um sie Claude im Chat zu schicken */
 const copyBtn=$("#p-copy");
